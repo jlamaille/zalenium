@@ -193,7 +193,7 @@ public class SauceLabsRemoteProxyTest {
             verify(sauceLabsSpyProxy, timeout(1000 * 5)).getTestInformation(mockSeleniumSessionId);
             TestInformation testInformation = sauceLabsSpyProxy.getTestInformation(mockSeleniumSessionId);
             Assert.assertEquals(mockSeleniumSessionId, testInformation.getTestName());
-            Assert.assertThat(testInformation.getFileName(),
+            Assert.assertThat(testInformation.getVideoFileName(),
                     CoreMatchers.containsString("saucelabs_72e4f8ecf04440fe965faf657864ed52_googlechrome_Windows_2008"));
             Assert.assertEquals("googlechrome 56, Windows 2008", testInformation.getBrowserAndPlatform());
             Assert.assertThat(testInformation.getVideoUrl(),

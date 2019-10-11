@@ -15,6 +15,8 @@ import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import de.zalando.ep.zalenium.lightproxy.SeleniumLightProxy;
+import de.zalando.ep.zalenium.lightproxy.service.LightProxy;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.lang3.StringUtils;
@@ -34,6 +36,7 @@ import org.openqa.grid.web.servlet.console.DefaultProxyHtmlRenderer;
 import org.openqa.grid.web.servlet.handler.RequestType;
 import org.openqa.grid.web.servlet.handler.WebDriverRequest;
 import org.openqa.selenium.Platform;
+import org.openqa.selenium.Proxy;
 import org.openqa.selenium.remote.CapabilityType;
 import org.openqa.selenium.remote.server.jmx.ManagedService;
 import org.slf4j.Logger;
@@ -65,42 +68,82 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
 
     @VisibleForTesting
     public static final String ZALENIUM_MAX_TEST_SESSIONS = "ZALENIUM_MAX_TEST_SESSIONS";
+
     @VisibleForTesting
     public static final long DEFAULT_MAX_TEST_IDLE_TIME_SECS = 90L;
+
     @VisibleForTesting
     public static final String ZALENIUM_VIDEO_RECORDING_ENABLED = "ZALENIUM_VIDEO_RECORDING_ENABLED";
+
     @VisibleForTesting
     public static final boolean DEFAULT_VIDEO_RECORDING_ENABLED = true;
+
+    public static final String BROWSERMOBPROXY = "BROWSERMOBPROXY";
+
+    private static final String BROWSERMOBPROXY_PORT = "BROWSERMOBPROXY_PORT";
+
     private static final String ZALENIUM_PROXY_CLEANUP_TIMEOUT = "ZALENIUM_PROXY_CLEANUP_TIMEOUT";
+
     private static final int DEFAULT_PROXY_CLEANUP_TIMEOUT = 180;
+
     private static final String ZALENIUM_KEEP_ONLY_FAILED_TESTS = "ZALENIUM_KEEP_ONLY_FAILED_TESTS";
+
     private static final Logger LOGGER = LoggerFactory.getLogger(DockerSeleniumRemoteProxy.class.getName());
+
     private static final int DEFAULT_MAX_TEST_SESSIONS = 1;
+
     private static final boolean DEFAULT_KEEP_ONLY_FAILED_TESTS = false;
-    private static final Environment defaultEnvironment = new Environment();
+
+    private static final Environment DEFAULT_ENVIRONMENT = new Environment();
+
     private static final ExecutorService EXECUTOR_SERVICE = Executors.newFixedThreadPool(5);
+
     private static int maxTestSessions;
+
     private static boolean keepOnlyFailedTests;
+
     private static boolean videoRecordingEnabledGlobal;
+
     private static long proxyCleanUpTimeout;
-    private static Environment env = defaultEnvironment;
+
+    private static Environment env = DEFAULT_ENVIRONMENT;
+
     private final HtmlRenderer renderer = new DefaultProxyHtmlRenderer(this);
+
     private final ContainerClientRegistration registration;
+
     private boolean videoRecordingEnabledSession;
+
     private boolean videoRecordingEnabledConfigured = false;
+
     private boolean cleaningUp;
+
     private boolean cleaningUpBeforeNextSession;
+
     private ContainerClient containerClient = ContainerFactory.getContainerClient();
+
     private int amountOfExecutedTests;
+
     private long maxTestIdleTimeSecs;
+
     private String testBuild;
+
     private String testName;
+
     private TestInformation testInformation;
+
+    private SeleniumLightProxy seleniumLightProxy;
+
     private GoogleAnalyticsApi ga = new GoogleAnalyticsApi();
+
     private CapabilityMatcher capabilityHelper;
+
     private long lastCommandTime = 0;
+
     private long cleanupStartedTime = 0;
+
     private AtomicBoolean timedOut = new AtomicBoolean(false);
+
     private long timeRegistered = System.currentTimeMillis();
 
     public DockerSeleniumRemoteProxy(RegistrationRequest request, GridRegistry registry) {
@@ -138,7 +181,7 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
 
     @VisibleForTesting
     static void restoreEnvironment() {
-        env = defaultEnvironment;
+        env = DEFAULT_ENVIRONMENT;
     }
 
     public static long getProxyCleanUpTimeout() {
@@ -146,8 +189,7 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
     }
 
     public static void setProxyCleanUpTimeout(long proxyCleanUpTimeout) {
-        DockerSeleniumRemoteProxy.proxyCleanUpTimeout = proxyCleanUpTimeout < 0 ?
-                DEFAULT_PROXY_CLEANUP_TIMEOUT : proxyCleanUpTimeout;
+        DockerSeleniumRemoteProxy.proxyCleanUpTimeout = proxyCleanUpTimeout < 0 ? DEFAULT_PROXY_CLEANUP_TIMEOUT : proxyCleanUpTimeout;
     }
 
     private static void setVideoRecordingEnabledGlobal(boolean videoRecordingEnabled) {
@@ -241,6 +283,33 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
         return null;
     }
 
+    private Map<String, Object> createAndAddProxyLightToRequestedCapability(Map<String, Object> requestedCapability) {
+        if (DockerSeleniumRemoteProxy.DEFAULT_ENVIRONMENT.getBooleanEnvVariable(BROWSERMOBPROXY, false)
+                && Boolean.parseBoolean(getCapability(requestedCapability, ZaleniumCapabilityType.LIGHT_PROXY, Boolean.FALSE.toString()))
+                && getRemoteHost() != null
+                && StringUtils.isNotEmpty(getRemoteHost().getHost())) {
+
+            seleniumLightProxy = new SeleniumLightProxy(getRemoteHost().getHost(),
+                    DockerSeleniumRemoteProxy.DEFAULT_ENVIRONMENT.getIntEnvVariable(BROWSERMOBPROXY_PORT, 8080),
+                    requestedCapability);
+            seleniumLightProxy.createSubProxy();
+            seleniumLightProxy.addFilterWhiteOrBlackList();
+            seleniumLightProxy.addHeaders();
+
+            if (seleniumLightProxy.getLightProxy() != null) {
+                // Set proxy on browser
+                Proxy seleniumProxy = new Proxy();
+                seleniumProxy.setHttpProxy(seleniumLightProxy.getLightProxy().getProxyUrl());
+                seleniumProxy.setSslProxy(seleniumProxy.getHttpProxy());
+                seleniumProxy.setProxyType(Proxy.ProxyType.MANUAL);
+                requestedCapability.put(CapabilityType.PROXY, seleniumProxy);
+
+            }
+
+        }
+        return requestedCapability;
+    }
+
     private TestSession createNewSession(Map<String, Object> requestedCapability) {
         String currentName = configureThreadName();
         TestSession newSession = super.getNewSession(requestedCapability);
@@ -252,22 +321,22 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
         }
 
         LOGGER.debug("Creating session for {}", requestedCapability);
-        String browserName = requestedCapability.get(CapabilityType.BROWSER_NAME).toString();
-        testName = getCapability(requestedCapability, ZaleniumCapabilityType.TEST_NAME, "");
-        String seleniumSessionId = newSession.getExternalKey() != null ?
-                newSession.getExternalKey().getKey() :
-                newSession.getInternalKey();
+        Map<String, Object> requestedCapabilityForNewSession = createAndAddProxyLightToRequestedCapability(requestedCapability);
+
+        String browserName = requestedCapabilityForNewSession.get(CapabilityType.BROWSER_NAME).toString();
+        testName = getCapability(requestedCapabilityForNewSession, ZaleniumCapabilityType.TEST_NAME, StringUtils.EMPTY);
+        String seleniumSessionId = newSession.getExternalKey() != null ? newSession.getExternalKey().getKey() : newSession.getInternalKey();
         if (testName.isEmpty()) {
             testName = seleniumSessionId;
         }
-        testBuild = getCapability(requestedCapability, ZaleniumCapabilityType.BUILD_NAME, "");
-        if (requestedCapability.containsKey(ZaleniumCapabilityType.RECORD_VIDEO)) {
-            boolean videoRecording = Boolean.parseBoolean(getCapability(requestedCapability, ZaleniumCapabilityType.RECORD_VIDEO, "true"));
+        testBuild = getCapability(requestedCapabilityForNewSession, ZaleniumCapabilityType.BUILD_NAME, StringUtils.EMPTY);
+        if (requestedCapabilityForNewSession.containsKey(ZaleniumCapabilityType.RECORD_VIDEO)) {
+            boolean videoRecording = Boolean.parseBoolean(getCapability(requestedCapabilityForNewSession, ZaleniumCapabilityType.RECORD_VIDEO, "true"));
             setVideoRecordingEnabledSession(videoRecording);
         }
-        String testFileNameTemplate = getCapability(requestedCapability, ZaleniumCapabilityType.TEST_FILE_NAME_TEMPLATE, "");
+        String testFileNameTemplate = getCapability(requestedCapabilityForNewSession, ZaleniumCapabilityType.TEST_FILE_NAME_TEMPLATE, StringUtils.EMPTY);
         String screenResolution = getCapability(newSession.getSlot().getCapabilities(), ZaleniumCapabilityType.SCREEN_RESOLUTION, "N/A");
-        String browserVersion = getCapability(newSession.getSlot().getCapabilities(), CapabilityType.VERSION, "");
+        String browserVersion = getCapability(newSession.getSlot().getCapabilities(), CapabilityType.VERSION, StringUtils.EMPTY);
         String timeZone = getCapability(newSession.getSlot().getCapabilities(), ZaleniumCapabilityType.TIME_ZONE, "N/A");
         testInformation = new TestInformation.TestInformationBuilder()
                 .withTestName(testName)
@@ -282,8 +351,13 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
                 .withBuild(testBuild)
                 .withTestStatus(TestInformation.TestStatus.COMPLETED)
                 .build();
+        testInformation.setProxyLightEnabled(Boolean.parseBoolean(getCapability(requestedCapabilityForNewSession, ZaleniumCapabilityType.LIGHT_PROXY, Boolean.FALSE.toString())));
+        testInformation.setHarCaptured(testInformation.isProxyLightEnabled()
+                && Boolean.parseBoolean(Optional.ofNullable(
+                requestedCapabilityForNewSession.get(ZaleniumCapabilityType.LIGHT_PROXY_CAPTURE_HAR)).
+                orElse(Boolean.TRUE).toString()));
         testInformation.setVideoRecorded(isVideoRecordingEnabled());
-        maxTestIdleTimeSecs = getConfiguredIdleTimeout(requestedCapability);
+        maxTestIdleTimeSecs = getConfiguredIdleTimeout(requestedCapabilityForNewSession);
 
         lastCommandTime = System.currentTimeMillis();
 
@@ -303,7 +377,7 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
         long configuredIdleTimeout;
         try {
             Object idleTimeout = requestedCapability.getOrDefault(ZaleniumCapabilityType.IDLE_TIMEOUT, DEFAULT_MAX_TEST_IDLE_TIME_SECS);
-            configuredIdleTimeout = Long.valueOf(String.valueOf(idleTimeout));
+            configuredIdleTimeout = Long.parseLong(String.valueOf(idleTimeout));
         } catch (Exception e) {
             configuredIdleTimeout = DEFAULT_MAX_TEST_IDLE_TIME_SECS;
             LOGGER.warn(e.toString());
@@ -319,16 +393,22 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
     public void beforeCommand(TestSession session, HttpServletRequest request, HttpServletResponse response) {
         String currentName = configureThreadName();
         super.beforeCommand(session, request, response);
-        LOGGER.debug("lastCommand: {} - executing...", request.getMethod(), request.getPathInfo());
+        LOGGER.debug("lastCommand: method : {}, path : {} - executing...", request.getMethod(), request.getPathInfo());
         if (request instanceof WebDriverRequest && "POST".equalsIgnoreCase(request.getMethod())) {
             WebDriverRequest seleniumRequest = (WebDriverRequest) request;
+
+            // Add pageRef if current command is get url
+            if (seleniumLightProxy != null && testInformation.isProxyLightEnabled()) {
+                seleniumLightProxy.addPageRefCaptureForHar(seleniumRequest);
+            }
+
             try {
                 if (seleniumRequest.getPathInfo().endsWith("cookie")) {
                     LOGGER.debug("Checking for cookies... {}", seleniumRequest.getBody());
                     JsonElement bodyRequest = new JsonParser().parse(seleniumRequest.getBody());
                     JsonObject cookie = bodyRequest.getAsJsonObject().getAsJsonObject("cookie");
                     JsonObject emptyName = new JsonObject();
-                    emptyName.addProperty("name", "");
+                    emptyName.addProperty("name", StringUtils.EMPTY);
                     String cookieName = Optional.ofNullable(cookie.get("name")).orElse(emptyName.get("name")).getAsString();
                     if ("zaleniumTestPassed".equalsIgnoreCase(cookieName)) {
                         boolean testPassed = Boolean.parseBoolean(cookie.get("value").getAsString());
@@ -342,15 +422,14 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
                         String message = cookie.get("value").getAsString();
                         if (ContainerFactory.getIsKubernetes().get()) {
                             // https://github.com/zalando/zalenium/issues/763
-                            message = message.replace("#","");
+                            message = message.replace("#", StringUtils.EMPTY);
                         }
                         String messageCommand = String.format(" 'Zalenium', '%s', --icon=/home/seluser/images/message.png",
                                 message);
                         processContainerAction(DockerSeleniumContainerAction.CLEAN_NOTIFICATION, getContainerId());
                         processContainerAction(DockerSeleniumContainerAction.SEND_NOTIFICATION, messageCommand,
                                 getContainerId());
-                    }
-                    else if(CommonProxyUtilities.metadataCookieName.equalsIgnoreCase(cookieName)) {
+                    } else if (CommonProxyUtilities.metadataCookieName.equalsIgnoreCase(cookieName)) {
                         JsonParser jsonParser = new JsonParser();
                         JsonObject metadata = jsonParser.parse(cookie.get("value").getAsString()).getAsJsonObject();
                         testInformation.setMetadata(metadata);
@@ -367,7 +446,7 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
     public void afterCommand(TestSession session, HttpServletRequest request, HttpServletResponse response) {
         String currentName = configureThreadName();
         super.afterCommand(session, request, response);
-        LOGGER.debug("lastCommand: {} - executing...", request.getMethod(), request.getPathInfo());
+        LOGGER.debug("lastCommand: method : {}, path : {} - executing...", request.getMethod(), request.getPathInfo());
         if (request instanceof WebDriverRequest && "POST".equalsIgnoreCase(request.getMethod())) {
             WebDriverRequest seleniumRequest = (WebDriverRequest) request;
             if (RequestType.START_SESSION.equals(seleniumRequest.getRequestType())) {
@@ -398,8 +477,7 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
                 if (isTestSessionLimitReached()) {
                     LOGGER.info("Session {} completed. Node should shutdown soon...", session.getInternalKey());
                     cleanupNode(true);
-                }
-                else {
+                } else {
                     LOGGER.info("Session {} completed. Cleaning up node for reuse, used {} of max {} sessions",
                             session.getInternalKey(), getAmountOfExecutedTests(), maxTestSessions);
                     cleanupNode(false);
@@ -458,8 +536,7 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
         boolean isShutdownIfIdle = testIdle || (testSessionLimitReached && !isBusy());
         if (isShutdownIfIdle) {
             LOGGER.debug("Proxy is idle.");
-            timeout("proxy being idle after test.", (testSessionLimitReached ?
-                    ShutdownType.MAX_TEST_SESSIONS_REACHED : ShutdownType.IDLE));
+            timeout("proxy being idle after test.", (testSessionLimitReached ? ShutdownType.MAX_TEST_SESSIONS_REACHED : ShutdownType.IDLE));
         }
         setThreadName(currentName);
         return isShutdownIfIdle;
@@ -604,7 +681,7 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
     @VisibleForTesting
     void processContainerAction(final DockerSeleniumContainerAction action, final String commandParameters,
                                 final String containerId) {
-        final String[] command = { "bash", "-c", action.getContainerAction().concat(commandParameters)};
+        final String[] command = {"bash", "-c", action.getContainerAction().concat(commandParameters)};
         containerClient.executeCommand(containerId, command, action.isWaitForExecution());
 
         if (keepVideoAndLogs()) {
@@ -633,22 +710,22 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
                     continue;
                 }
                 String fileExtension = entry.getName().substring(entry.getName().lastIndexOf('.'));
-                testInformation.setFileExtension(fileExtension);
+                testInformation.setVideoFileExtension(fileExtension);
                 Path videoFile = Paths.get(String.format("%s/%s", testInformation.getVideoFolderPath(),
-                        testInformation.getFileName()));
+                        testInformation.getVideoFileName()));
                 if (!Files.exists(Paths.get(testInformation.getVideoFolderPath()))) {
                     Files.createDirectories(Paths.get(testInformation.getVideoFolderPath()));
                 }
                 Files.copy(tarStream, videoFile);
                 CommonProxyUtilities.setFilePermissions(videoFile);
                 videoWasCopied = true;
-                LOGGER.debug("Video file copied to: {}/{}", testInformation.getVideoFolderPath(), testInformation.getFileName());
+                LOGGER.debug("Video file copied to: {}/{}", testInformation.getVideoFolderPath(), testInformation.getVideoFileName());
             }
         } catch (IOException e) {
             // This error happens in k8s, but the file is ok, nevertheless the size is not accurate
             boolean isPipeClosed = e.getMessage().toLowerCase().contains("pipe closed");
             if (ContainerFactory.getIsKubernetes().get() && isPipeClosed) {
-                LOGGER.debug("Video file copied to: {}/{}", testInformation.getVideoFolderPath(), testInformation.getFileName());
+                LOGGER.debug("Video file copied to: {}/{}", testInformation.getVideoFolderPath(), testInformation.getVideoFileName());
             } else {
                 LOGGER.warn("Error while copying the video", e);
             }
@@ -685,7 +762,7 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
                     CommonProxyUtilities.setFilePermissions(directories);
                     CommonProxyUtilities.setFilePermissions(directories.getParent());
                 }
-                String fileName = entry.getName().replace("cont/", "");
+                String fileName = entry.getName().replace("cont/", StringUtils.EMPTY);
                 Path logFile = Paths.get(String.format("%s/%s", testInformation.getLogsFolderPath(), fileName));
                 Files.copy(tarStream, logFile);
                 CommonProxyUtilities.setFilePermissions(logFile);
@@ -693,7 +770,7 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
             LOGGER.debug("Logs copied to: {}", testInformation.getLogsFolderPath());
         } catch (IOException | NullPointerException e) {
             // This error happens in k8s, but the file is ok, nevertheless the size is not accurate
-            String exceptionMessage = Optional.ofNullable(e.getMessage()).orElse("");
+            String exceptionMessage = Optional.ofNullable(e.getMessage()).orElse(StringUtils.EMPTY);
             boolean isPipeClosed = exceptionMessage.toLowerCase().contains("pipe closed");
             if (ContainerFactory.getIsKubernetes().get() && isPipeClosed) {
                 LOGGER.debug("Logs copied to: {}", testInformation.getLogsFolderPath());
@@ -709,16 +786,15 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
         // A node should not be marked as stale while doing cleanup jobs. SANITY: The upper limit of cleanup jobs is 3 minutes.
         long timeSinceCleanupStarted = System.currentTimeMillis() - cleanupStartedTime;
 
-        if(this.cleaningUp && timeSinceCleanupStarted > (getProxyCleanUpTimeout() * 1000L)) {
+        if (this.cleaningUp && timeSinceCleanupStarted > (getProxyCleanUpTimeout() * 1000L)) {
             LOGGER.error("Proxy has been cleaning up {} which is longer than {}. The Grid seems to be overloaded. " +
                             "You can extend this timeout through the ZALENIUM_PROXY_CLEANUP_TIMEOUT env var.",
                     timeSinceCleanupStarted, (getProxyCleanUpTimeout() * 1000));
             //Cleanup is taking more then getProxyCleanUpTimeout() minutes, return false so that the node can get
             // marked as stale.
             return false;
-        } else {
-            return this.cleaningUp;
         }
+        return this.cleaningUp;
     }
 
     private void setCleaningUp(boolean cleaningUp) {
@@ -756,6 +832,15 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
             }
             videoRecording(DockerSeleniumContainerAction.STOP_RECORDING);
             processContainerAction(DockerSeleniumContainerAction.TRANSFER_LOGS, getContainerId());
+
+            if (seleniumLightProxy != null) {
+                seleniumLightProxy.saveHar(testInformation);
+                LightProxy proxyLight = seleniumLightProxy.getLightProxy();
+                if (proxyLight != null) {
+                    proxyLight.delete();
+                }
+            }
+
             processContainerAction(DockerSeleniumContainerAction.CLEANUP_CONTAINER, getContainerId());
 
             if (testInformation != null && keepVideoAndLogs()) {
@@ -777,8 +862,7 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
         if (shutdownType == ShutdownType.MAX_TEST_SESSIONS_REACHED) {
             shutdownReason = String.format(
                     "Marking the node as down because it was stopped after %s tests.", maxTestSessions);
-        }
-        else {
+        } else {
             shutdownReason = "Marking the node as down because it was idle after the tests had finished.";
         }
 
@@ -822,14 +906,10 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
     }
 
     public enum DockerSeleniumContainerAction {
-        START_RECORDING("start-video", false),
-        STOP_RECORDING("stop-video", true),
-        TRANSFER_LOGS("transfer-logs.sh", true),
-        CLEANUP_CONTAINER("cleanup-container.sh", true),
-        SEND_NOTIFICATION("notify", true),
-        CLEAN_NOTIFICATION("killall --ignore-case --quiet --regexp \"xfce4-notifyd.*\"", true);
+        START_RECORDING("start-video", false), STOP_RECORDING("stop-video", true), TRANSFER_LOGS("transfer-logs.sh", true), TRANSFER_HARS(StringUtils.EMPTY, true), CLEANUP_CONTAINER("cleanup-container.sh", true), SEND_NOTIFICATION("notify", true), CLEAN_NOTIFICATION("killall --ignore-case --quiet --regexp \"xfce4-notifyd.*\"", true);
 
         private String containerAction;
+
         private boolean waitForExecution;
 
         DockerSeleniumContainerAction(String action, boolean waitForExecution) {
@@ -847,10 +927,7 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
     }
 
     public enum ShutdownType {
-        STALE,
-        IDLE,
-        MAX_TEST_SESSIONS_REACHED
+        STALE, IDLE, MAX_TEST_SESSIONS_REACHED
     }
-
 
 }

@@ -243,7 +243,7 @@ public class TestingBotRemoteProxyTest {
         verify(spyProxy, timeout(1000 * 5)).getTestInformation(mockSeleniumSessionId);
         TestInformation testInformation = spyProxy.getTestInformation(mockSeleniumSessionId);
         Assert.assertEquals("loadZalandoPageAndCheckTitle", testInformation.getTestName());
-        Assert.assertThat(testInformation.getFileName(), CoreMatchers.containsString("testingbot_loadZalandoPageAndCheckTitle_Safari9_CAPITAN"));
+        Assert.assertThat(testInformation.getVideoFileName(), CoreMatchers.containsString("testingbot_loadZalandoPageAndCheckTitle_Safari9_CAPITAN"));
         Assert.assertEquals("Safari9 9, CAPITAN", testInformation.getBrowserAndPlatform());
         Assert.assertEquals("https://s3-eu-west-1.amazonaws.com/eurectestingbot/2cf5d115-ca6f-4bc4-bc06-a4fca00836ce.mp4",
                 testInformation.getVideoUrl());
