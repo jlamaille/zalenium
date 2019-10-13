@@ -116,6 +116,8 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
 
     private final ContainerClientRegistration registration;
 
+    private final String urlBrowserMobProxy;
+
     private boolean videoRecordingEnabledSession;
 
     private boolean videoRecordingEnabledConfigured = false;
@@ -133,6 +135,8 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
     private String testBuild;
 
     private String testName;
+
+    private Integer testProxyPort;
 
     private TestInformation testInformation;
 
@@ -159,6 +163,7 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
             containerClient.setNodeId(getId());
             registration = containerClient.registerNode(DockeredSeleniumStarter.getContainerName(),
                     this.getRemoteHost());
+            urlBrowserMobProxy = String.format("http://%s:%s", this.getRemoteHost(), "8080"); // TODO Port à param ?
         } catch (Exception e) {
             LOGGER.error("Failed to create", e);
             throw e;
@@ -258,32 +263,10 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
         String currentName = configureThreadName();
         LOGGER.debug("Getting new session request {}", requestedCapability);
 
-        Integer portProxy = createAndAddBrowserMobProxy(requestedCapability);
+        createAndAddBrowserMobProxy(requestedCapability);
 
-        // Add white list in browser mob proxy
-        if (portProxy != null && requestedCapability.containsKey(ZaleniumCapabilityType.BROWSERMOBPROXY_WHITE_LIST)) {
-            String bpWhiteList = String.valueOf(requestedCapability.get(ZaleniumCapabilityType.BROWSERMOBPROXY_WHITE_LIST));
-            LOGGER.debug("Adding white list {} on browsermob proxy", bpWhiteList);
-            HttpHeaders headers = new HttpHeaders(); // TODO à mutaliser
-            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-            MultiValueMap<String, Object> map = new LinkedMultiValueMap<>();
-            map.add("regex", bpWhiteList);
-            HttpEntity<MultiValueMap<String, Object>> request = new HttpEntity<>(map, headers);
-            restTemplate.put(String.format("http://%s:8080/proxy/%s/whitelist", this.getRemoteHost().getHost(), portProxy), request);
-        }
-
-        // Add black list in browser mob proxy
-        if (portProxy != null && requestedCapability.containsKey(ZaleniumCapabilityType.BROWSERMOBPROXY_BLACK_LIST)) {
-            String bpBlackList = String.valueOf(requestedCapability.get(ZaleniumCapabilityType.BROWSERMOBPROXY_BLACK_LIST));
-            LOGGER.debug("Adding black list {} on browsermob proxy", bpBlackList);
-            HttpHeaders headers = new HttpHeaders(); // TODO à mutaliser
-            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-            MultiValueMap<String, Object> map = new LinkedMultiValueMap<>();
-            map.add("regex", bpBlackList);
-            map.add("status", 403);
-            HttpEntity<MultiValueMap<String, Object>> request = new HttpEntity<>(map, headers);
-            restTemplate.put(String.format("http://%s:8080/proxy/%s/blacklist", this.getRemoteHost().getHost(), portProxy), request);
-        }
+        // Add white/black list in browser mob proxy
+        addFilterWhiteOrBlackListBrowserMobProxy(requestedCapability);
 
         if (this.timedOut.get()) {
             LOGGER.debug("Proxy has timed out, not accepting new sessions.");
@@ -309,31 +292,24 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
             setThreadName(currentName);
             TestSession newSession = createNewSession(requestedCapability);
 
-            String seleniumSessionId = testInformation.getSeleniumSessionId();
-//            LOGGER.debug("seleniumSessionId => {}", seleniumSessionId);
-            if (portProxy != null && StringUtils.isNotEmpty(seleniumSessionId)) {
+            if (testInformation != null) {
+                String seleniumSessionId = testInformation.getSeleniumSessionId();
+                if (testProxyPort != null && StringUtils.isNotEmpty(seleniumSessionId)) {
 
-                // Create HAR
-                LOGGER.debug("Adding HAR in browsermob proxy", seleniumSessionId);
-                HttpHeaders headers = new HttpHeaders(); // TODO à mutaliser
-                headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-                MultiValueMap<String, Object> map = new LinkedMultiValueMap<>();
-                HttpEntity<MultiValueMap<String, Object>> request = new HttpEntity<>(map, headers);
-                try {
-                    restTemplate.put(String.format("http://%s:8080/proxy/%s/har", this.getRemoteHost().getHost(), portProxy), request);
-                } catch(RestClientException e) {
-                    newSession.sendDeleteSessionRequest();
-                    LOGGER.error("Error when creating HAR in browsermob proxy. {}.", e.getLocalizedMessage());
+                    // Create HAR
+                    LOGGER.debug("Adding HAR in browsermob proxy", seleniumSessionId);
+                    HttpHeaders headers = new HttpHeaders(); // TODO à mutaliser
+                    headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+                    MultiValueMap<String, Object> map = new LinkedMultiValueMap<>();
+                    HttpEntity<MultiValueMap<String, Object>> request = new HttpEntity<>(map, headers);
+                    try {
+                        restTemplate.put(String.format("%s/proxy/%s/har", urlBrowserMobProxy,
+                                testProxyPort), request);
+                    } catch (RestClientException e) {
+                        newSession.sendDeleteSessionRequest();
+                        LOGGER.error("Error when creating HAR in browsermob proxy. {}.", e.getLocalizedMessage());
+                    }
                 }
-
-                // Create pageRef to save HAR with session id for key
-//                LOGGER.debug("Adding pageRef to save HAR with session id {} on browsermob proxy", seleniumSessionId);
-//                HttpHeaders headers = new HttpHeaders(); // TODO à mutaliser
-//                headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-//                MultiValueMap<String, Object> map = new LinkedMultiValueMap<>();
-//                map.add("pageRef", seleniumSessionId);
-//                HttpEntity<MultiValueMap<String, Object>> request = new HttpEntity<>(map, headers);
-//                restTemplate.put(String.format("http://%s:8080/proxy/%s/har/pageRef", this.getRemoteHost().getHost(), portProxy), request);
             }
             return newSession;
         }
@@ -343,32 +319,55 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
         return null;
     }
 
+    private void addFilterWhiteOrBlackListBrowserMobProxy(final Map<String, Object> requestedCapability) {
+        if (testProxyPort != null) {
+            requestedCapability.entrySet().stream().filter(r -> r.getKey().equals(ZaleniumCapabilityType.BROWSERMOBPROXY_WHITE_LIST) ||
+                    r.getKey().equals(ZaleniumCapabilityType.BROWSERMOBPROXY_BLACK_LIST)).forEach(r -> {
+                String regexType = r.getKey().equals(ZaleniumCapabilityType.BROWSERMOBPROXY_WHITE_LIST) ? "whitelist" : "blacklist";
+                String regex = String.valueOf(r.getValue());
+                LOGGER.debug("Adding {} '{}' on browsermob proxy", regexType, regex);
+                HttpHeaders headers = new HttpHeaders(); // TODO à mutaliser
+                headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+                MultiValueMap<String, Object> map = new LinkedMultiValueMap<>();
+                map.add("regex", regex);
+                HttpEntity<MultiValueMap<String, Object>> request = new HttpEntity<>(map, headers);
+                restTemplate.put(String.format("%s/proxy/%s/%s", urlBrowserMobProxy, testProxyPort, regexType), request);
+            });
+        }
+    }
+
     /**
-     *
      * @param requestedCapability
-     * @return a BrowserMob proxy port
      */
-    private Integer createAndAddBrowserMobProxy(Map<String, Object> requestedCapability) {
-        if (this.defaultEnvironment.getBooleanEnvVariable("BROWSERMOBPROXY", false)) {
+    private void createAndAddBrowserMobProxy(Map<String, Object> requestedCapability) {
+        if (this.defaultEnvironment.getBooleanEnvVariable("BROWSERMOBPROXY", false)) { // TODO var d'env
             if (getRemoteHost() != null) {
                 // Create proxy in browsermob proxy service. One proxy for one session.
                 LOGGER.debug("Creating proxy on browsermob proxy...");
-                ResponseEntity<BrowserMobProxy> responseCreatedProxy = restTemplate.postForEntity("http://" + this.getRemoteHost().getHost() + ":8080/proxy?httpProxy=proxytest.services.local:3128", // TODO JLA
+
+                String url = String.format("%s/proxy", urlBrowserMobProxy);
+                if (requestedCapability != null
+                        && requestedCapability.containsKey(CapabilityType.PROXY)
+                        && requestedCapability.get(CapabilityType.PROXY) instanceof Proxy) {
+                    Proxy proxy = (Proxy) requestedCapability.get(CapabilityType.PROXY);
+                    url += String.format("?httpProxy=%s", proxy.getHttpProxy());
+                }
+
+                ResponseEntity<BrowserMobProxy> responseCreatedProxy = restTemplate.postForEntity(url, // TODO JLA
                         null, BrowserMobProxy.class);
                 if (responseCreatedProxy != null
                         && responseCreatedProxy.getBody() != null
                         && responseCreatedProxy.getStatusCode().equals(HttpStatus.OK)) {
-                    int portProxy = responseCreatedProxy.getBody().getPort();
-                    LOGGER.debug("Browsermob proxy created on port {}", portProxy);
+                    testProxyPort = responseCreatedProxy.getBody().getPort();
+                    LOGGER.debug("Browsermob proxy created on port {}", testProxyPort);
 
                     // Set proxy on browser
                     Proxy seleniumProxy = new Proxy();
-                    seleniumProxy.setHttpProxy(String.format("127.0.0.1:%s", portProxy));
+                    seleniumProxy.setHttpProxy(String.format("127.0.0.1:%s", testProxyPort));
                     seleniumProxy.setSslProxy(seleniumProxy.getHttpProxy());
                     seleniumProxy.setProxyType(Proxy.ProxyType.MANUAL);
                     requestedCapability.put(CapabilityType.PROXY, seleniumProxy);
 
-                    return portProxy;
                 } else {
                     LOGGER.error("Error when creating proxy on browsermob proxy. {}.",
                             responseCreatedProxy != null && responseCreatedProxy.getBody() != null
@@ -377,7 +376,6 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
                 }
             }
         }
-        return null;
     }
 
     private TestSession createNewSession(Map<String, Object> requestedCapability) {

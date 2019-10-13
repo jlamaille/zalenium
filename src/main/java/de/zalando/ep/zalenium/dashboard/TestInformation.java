@@ -36,6 +36,7 @@ public class TestInformation {
     private String fileName;
     private String fileExtension;
     private String videoUrl;
+    private String harUrl;
     private List<String> logUrls;
     private List<RemoteLogFile> remoteLogFiles;
     private String videoFolderPath;
