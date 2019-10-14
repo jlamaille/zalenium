@@ -37,6 +37,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 public class Dashboard implements DashboardInterface {
 
     public static final String VIDEOS_FOLDER_NAME = "videos";
+    public static final String HARS_FOLDER_NAME = "hars";
     public static final String LOGS_FOLDER_NAME = "logs";
     private static final String TEST_COUNT_FILE = "executedTestsInfo.json";
     private static final String TEST_INFORMATION_FILE = "testInformation.json";
@@ -68,6 +69,10 @@ public class Dashboard implements DashboardInterface {
 
     public static String getLocalVideosPath() {
         return getCurrentLocalPath() + "/" + VIDEOS_FOLDER_NAME;
+    }
+
+    public static String getLocalHarsPath() {
+        return getCurrentLocalPath() + "/" + HARS_FOLDER_NAME;
     }
 
     @VisibleForTesting
@@ -153,7 +158,7 @@ public class Dashboard implements DashboardInterface {
             LOGGER.info("Cleaning up " + invalidTestsInformation.size() + " test(s) from Dashboard");
 
             for(TestInformation testInformation : invalidTestsInformation) {
-                deleteIfExists(new File(getLocalVideosPath() + "/" + testInformation.getFileName()));
+                deleteIfExists(new File(getLocalVideosPath() + "/" + testInformation.getVideoFileName()));
                 deleteIfExists(new File(testInformation.getLogsFolderPath()));
             }
 
@@ -177,6 +182,8 @@ public class Dashboard implements DashboardInterface {
         if (reset) {
             File videosFolder = new File(getLocalVideosPath());
             FileUtils.cleanDirectory(videosFolder);
+            File harsFolder = new File(getLocalHarsPath());
+            FileUtils.cleanDirectory(harsFolder);
         }
 
         setupDashboardFile(dashboardHtml);
@@ -271,7 +278,7 @@ public class Dashboard implements DashboardInterface {
             }
             String  buildDirectory = testInformation.getVideoFolderPath().replace("/home/seluser/videos", "");
             buildDirectory = buildDirectory.trim().length() > 0 ? buildDirectory.replace("/", "").concat("/") : "";
-            String fileName = buildDirectory.concat(testInformation.getFileName());
+            String fileName = buildDirectory.concat(testInformation.getVideoFileName());
             String seleniumLogFileName = "logs/".concat(buildDirectory).concat(testInformation.getSeleniumLogFileName()
                     .replace("logs/", ""));
             String browserDriverLogFileName = "logs/".concat(buildDirectory).concat(testInformation.getBrowserDriverLogFileName()

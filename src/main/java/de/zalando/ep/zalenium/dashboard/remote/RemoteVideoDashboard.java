@@ -22,8 +22,8 @@ public class RemoteVideoDashboard extends RemoteDashboard {
         FormFile uploadFile = new FormFile();
         uploadFile.keyName = "video";
         uploadFile.mimeType = ContentType.create("video/mp4");
-        uploadFile.stream = new FileInputStream(Paths.get(testInformation.getVideoFolderPath(), testInformation.getFileName()).toString());
-        uploadFile.fileName = testInformation.getFileName();
+        uploadFile.stream = new FileInputStream(Paths.get(testInformation.getVideoFolderPath(), testInformation.getVideoFileName()).toString());
+        uploadFile.fileName = testInformation.getVideoFileName();
 
         this.setupMetadata(testInformation).addProperty("Type", "video");
 

@@ -101,6 +101,7 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
     private static final Environment defaultEnvironment = new Environment();
 
     private static final ExecutorService EXECUTOR_SERVICE = Executors.newFixedThreadPool(5);
+    public static final String BROWSERMOBPROXY = "BROWSERMOBPROXY";
 
     private static int maxTestSessions;
 
@@ -340,7 +341,7 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
      * @param requestedCapability
      */
     private void createAndAddBrowserMobProxy(Map<String, Object> requestedCapability) {
-        if (this.defaultEnvironment.getBooleanEnvVariable("BROWSERMOBPROXY", false)) { // TODO var d'env
+        if (this.defaultEnvironment.getBooleanEnvVariable(BROWSERMOBPROXY, false)) {
             if (getRemoteHost() != null) {
                 // Create proxy in browsermob proxy service. One proxy for one session.
                 LOGGER.debug("Creating proxy on browsermob proxy...");
@@ -765,22 +766,22 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
                     continue;
                 }
                 String fileExtension = entry.getName().substring(entry.getName().lastIndexOf('.'));
-                testInformation.setFileExtension(fileExtension);
+                testInformation.setVideoFileExtension(fileExtension);
                 Path videoFile = Paths.get(String.format("%s/%s", testInformation.getVideoFolderPath(),
-                        testInformation.getFileName()));
+                        testInformation.getVideoFileName()));
                 if (!Files.exists(Paths.get(testInformation.getVideoFolderPath()))) {
                     Files.createDirectories(Paths.get(testInformation.getVideoFolderPath()));
                 }
                 Files.copy(tarStream, videoFile);
                 CommonProxyUtilities.setFilePermissions(videoFile);
                 videoWasCopied = true;
-                LOGGER.debug("Video file copied to: {}/{}", testInformation.getVideoFolderPath(), testInformation.getFileName());
+                LOGGER.debug("Video file copied to: {}/{}", testInformation.getVideoFolderPath(), testInformation.getVideoFileName());
             }
         } catch (IOException e) {
             // This error happens in k8s, but the file is ok, nevertheless the size is not accurate
             boolean isPipeClosed = e.getMessage().toLowerCase().contains("pipe closed");
             if (ContainerFactory.getIsKubernetes().get() && isPipeClosed) {
-                LOGGER.debug("Video file copied to: {}/{}", testInformation.getVideoFolderPath(), testInformation.getFileName());
+                LOGGER.debug("Video file copied to: {}/{}", testInformation.getVideoFolderPath(), testInformation.getVideoFileName());
             } else {
                 LOGGER.warn("Error while copying the video", e);
             }
@@ -831,6 +832,50 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
                 LOGGER.debug("Logs copied to: {}", testInformation.getLogsFolderPath());
             } else {
                 LOGGER.debug("Error while copying the logs", e);
+            }
+            ga.trackException(e);
+        }
+        setThreadName(currentName);
+    }
+
+    @VisibleForTesting
+    void copyHars(final String containerId) { // TODO Mutualisation possible ici !
+        if (SwarmUtilities.isSwarmActive()) {
+            // Disabling HARs in swarm mode
+            return;
+        }
+
+        if (testInformation == null || StringUtils.isEmpty(containerId)) {
+            // No tests run or container has been removed, nothing to copy and nothing to update.
+            return;
+        }
+        String currentName = configureThreadName();
+        TarArchiveInputStream tarStream = new TarArchiveInputStream(containerClient.copyFiles(containerId, "/hars/"));
+        try {
+            TarArchiveEntry entry;
+            while ((entry = tarStream.getNextTarEntry()) != null) {
+                if (entry.isDirectory()) {
+                    continue;
+                }
+                if (!Files.exists(Paths.get(testInformation.getHarsFolderPath()))) {
+                    Path directories = Files.createDirectories(Paths.get(testInformation.getHarsFolderPath()));
+                    CommonProxyUtilities.setFilePermissions(directories);
+                    CommonProxyUtilities.setFilePermissions(directories.getParent());
+                }
+                String fileName = entry.getName();
+                Path harFile = Paths.get(String.format("%s/%s", testInformation.getHarsFolderPath(), fileName));
+                Files.copy(tarStream, harFile);
+                CommonProxyUtilities.setFilePermissions(harFile);
+            }
+            LOGGER.debug("Logs copied to: {}", testInformation.getHarsFolderPath());
+        } catch (IOException | NullPointerException e) {
+            // This error happens in k8s, but the file is ok, nevertheless the size is not accurate
+            String exceptionMessage = Optional.ofNullable(e.getMessage()).orElse("");
+            boolean isPipeClosed = exceptionMessage.toLowerCase().contains("pipe closed");
+            if (ContainerFactory.getIsKubernetes().get() && isPipeClosed) {
+                LOGGER.debug("HARs copied to: {}", testInformation.getHarsFolderPath());
+            } else {
+                LOGGER.debug("Error while copying the HARs", e);
             }
             ga.trackException(e);
         }

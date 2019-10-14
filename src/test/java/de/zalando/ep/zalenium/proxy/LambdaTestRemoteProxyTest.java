@@ -189,7 +189,7 @@ public class LambdaTestRemoteProxyTest {
       verify(lambdaTestSpyProxy, timeout(1000 * 5)).getTestInformation(mockSeleniumSessionId);
       TestInformation testInformation = lambdaTestSpyProxy.getTestInformation(mockSeleniumSessionId);
       Assert.assertEquals("loadZalandoPageAndCheckTitle", testInformation.getTestName());
-      Assert.assertThat(testInformation.getFileName(),
+      Assert.assertThat(testInformation.getVideoFileName(),
           CoreMatchers.containsString("lambdatest_loadZalandoPageAndCheckTitle_chrome_windows"));
       Assert.assertEquals("chrome 67.0, windows", testInformation.getBrowserAndPlatform());
       Assert.assertEquals("https://d15x9hjibri3lt.cloudfront.net/ZVRUI-72B5S-OKGNO-1VXVS/video.mp4",
