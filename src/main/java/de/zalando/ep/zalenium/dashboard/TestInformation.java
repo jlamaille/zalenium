@@ -1,6 +1,5 @@
 package de.zalando.ep.zalenium.dashboard;
 
-
 import com.google.common.base.Strings;
 import com.google.gson.JsonObject;
 
@@ -19,43 +18,78 @@ import java.util.Optional;
 @SuppressWarnings("WeakerAccess")
 public class TestInformation {
     private static final String TEST_FILE_NAME_TEMPLATE = "{proxyName}_{testName}_{browser}_{platform}_{timestamp}_{testStatus}";
+
     private static final String FILE_NAME_TEMPLATE = "{fileName}{fileExtension}";
+
     private static final String ZALENIUM_PROXY_NAME = "Zalenium";
+
     private static final String SAUCE_LABS_PROXY_NAME = "SauceLabs";
+
     private static final String BROWSER_STACK_PROXY_NAME = "BrowserStack";
+
     private static final String LAMBDA_TEST_PROXY_NAME = "LambdaTest";
+
     private static final CommonProxyUtilities commonProxyUtilities = new CommonProxyUtilities();
+
     private String seleniumSessionId;
+
     private String testName;
+
     private Date timestamp;
+
     private long addedToDashboardTime;
+
     private String proxyName;
+
     private String browser;
+
     private String browserVersion;
+
     private String platform;
+
     private String platformVersion;
+
     private String videoFileName;
+
     private String videoFileExtension;
+
     private String videoUrl;
+
     private String harFileName;
-    private String harUrl;
+
     private List<String> logUrls;
+
     private List<RemoteLogFile> remoteLogFiles;
+
     private String videoFolderPath;
+
     private String logsFolderPath;
+
     private String testNameNoExtension;
-    @SuppressWarnings({"unused", "FieldCanBeLocal"})
+
+    @SuppressWarnings({ "unused", "FieldCanBeLocal" })
     private String screenDimension;
+
     private String timeZone;
+
     private String build;
+
     private String testFileNameTemplate;
+
     private String seleniumLogFileName;
+
     private String browserDriverLogFileName;
+
     private Date retentionDate;
+
     private TestStatus testStatus;
+
     private boolean videoRecorded;
+
     private JsonObject metadata;
+
     private String harsFolderPath;
+
     private String buildName;
 
     public boolean isVideoRecorded() {
@@ -155,14 +189,14 @@ public class TestInformation {
     }
 
     public void buildSeleniumLogFileName() {
-        String fileName = Dashboard.LOGS_FOLDER_NAME + "/" + testNameNoExtension + "/";
+        String fileName = Dashboard.LOGS_FOLDER_NAME + "/" +  getTestNameNoExtension() + "/";
         if (ZALENIUM_PROXY_NAME.equalsIgnoreCase(proxyName)) {
             seleniumLogFileName = fileName.concat("selenium-multinode-stderr.log");
         } else if (SAUCE_LABS_PROXY_NAME.equalsIgnoreCase(proxyName)) {
             seleniumLogFileName = fileName.concat("selenium-server.log");
-        } else if (BROWSER_STACK_PROXY_NAME.equalsIgnoreCase(proxyName)){
+        } else if (BROWSER_STACK_PROXY_NAME.equalsIgnoreCase(proxyName)) {
             seleniumLogFileName = fileName.concat("selenium.log");
-        } else if (LAMBDA_TEST_PROXY_NAME.equalsIgnoreCase(proxyName)){
+        } else if (LAMBDA_TEST_PROXY_NAME.equalsIgnoreCase(proxyName)) {
             seleniumLogFileName = fileName.concat("selenium.log");
         } else {
             seleniumLogFileName = fileName.concat("not_implemented.log");
@@ -176,15 +210,22 @@ public class TestInformation {
         return seleniumLogFileName;
     }
 
+    public String getTestFileNameTemplate() {
+        if(StringUtils.isEmpty(testFileNameTemplate)) {
+            this.testFileNameTemplate = TEST_FILE_NAME_TEMPLATE;
+        }
+        return testFileNameTemplate;
+    }
+
     public void buildBrowserDriverLogFileName() {
-        String fileName = Dashboard.LOGS_FOLDER_NAME + "/" + testNameNoExtension + "/";
+        String fileName = Dashboard.LOGS_FOLDER_NAME + "/" +  getTestNameNoExtension() + "/";
         if (ZALENIUM_PROXY_NAME.equalsIgnoreCase(proxyName)) {
             browserDriverLogFileName = fileName.concat(String.format("%s_driver.log", browser.toLowerCase()));
         } else if (SAUCE_LABS_PROXY_NAME.equalsIgnoreCase(proxyName)) {
             browserDriverLogFileName = fileName.concat("log.json");
-        } else if (BROWSER_STACK_PROXY_NAME.equalsIgnoreCase(proxyName)){
+        } else if (BROWSER_STACK_PROXY_NAME.equalsIgnoreCase(proxyName)) {
             browserDriverLogFileName = fileName.concat("browserstack.log");
-        }  else if (LAMBDA_TEST_PROXY_NAME.equalsIgnoreCase(proxyName)){
+        } else if (LAMBDA_TEST_PROXY_NAME.equalsIgnoreCase(proxyName)) {
             browserDriverLogFileName = fileName.concat("lambdatest.log");
         } else {
             browserDriverLogFileName = fileName.concat("not_implemented.log");
@@ -206,19 +247,33 @@ public class TestInformation {
     }
 
     public void buildVideoFileName() {
-        if(StringUtils.isNotEmpty(testNameNoExtension)) {
-            this.videoFileName = FILE_NAME_TEMPLATE.replace("{fileName}", testNameNoExtension)
-                    .replace("{fileExtension}", videoFileExtension);
+        this.videoFileName = FILE_NAME_TEMPLATE.replace("{fileName}", getTestNameNoExtension())
+                .replace("{fileExtension}", videoFileExtension);
 
-            this.videoFolderPath = commonProxyUtilities.currentLocalPath() + "/" + Dashboard.VIDEOS_FOLDER_NAME + buildName;
-            this.logsFolderPath = commonProxyUtilities.currentLocalPath() + "/" + Dashboard.VIDEOS_FOLDER_NAME +
-                    buildName + "/" + Dashboard.LOGS_FOLDER_NAME + "/" + testNameNoExtension;
-        }
+        this.videoFolderPath = commonProxyUtilities.currentLocalPath() + "/" + Dashboard.VIDEOS_FOLDER_NAME + getBuildName();
+        this.logsFolderPath = commonProxyUtilities.currentLocalPath() + "/" + Dashboard.VIDEOS_FOLDER_NAME +
+                getBuildName() + "/" + Dashboard.LOGS_FOLDER_NAME + "/" +  getTestNameNoExtension();
     }
 
-    private void buildTestNameNoExtension() {
-        if(StringUtils.isNotEmpty(buildName)) {
-            this.testNameNoExtension = this.testFileNameTemplate
+    public String getHarsFolderPath() {
+        if(StringUtils.isEmpty(harsFolderPath)) {
+            this.harsFolderPath = commonProxyUtilities.currentLocalPath() + "/" + Dashboard.VIDEOS_FOLDER_NAME +
+                  getBuildName() +  "/" + Dashboard.HARS_FOLDER_NAME;
+        }
+        return harsFolderPath;
+    }
+
+    public String getHarFileName() {
+        if(StringUtils.isEmpty(harFileName)) {
+            this.harFileName = FILE_NAME_TEMPLATE.replace("{fileName}", getTestNameNoExtension())
+                    .replace("{fileExtension}", ".har");
+        }
+        return harFileName;
+    }
+
+    private String getTestNameNoExtension() {
+        if (StringUtils.isEmpty(testNameNoExtension)) {
+            this.testNameNoExtension = this.getTestFileNameTemplate()
                     .replace("{proxyName}", this.proxyName.toLowerCase())
                     .replace("{testName}", getTestName())
                     .replace("{browser}", this.browser)
@@ -227,24 +282,20 @@ public class TestInformation {
                     .replace("{testStatus}", getTestStatus().toString())
                     .replaceAll("[^a-zA-Z0-9]", "_");
         }
+        return testNameNoExtension;
     }
 
 
-    private void buildHarsFileName() {
-        if(StringUtils.isNotEmpty(testNameNoExtension)) {
-            this.harFileName = FILE_NAME_TEMPLATE.replace("{fileName}", testNameNoExtension)
-                    .replace("{fileExtension}", ".har");
 
-            this.harsFolderPath = commonProxyUtilities.currentLocalPath() + "/" + Dashboard.HARS_FOLDER_NAME + buildName;
+    private String getBuildName() {
+        if (StringUtils.isEmpty(buildName)) {
+            if ("N/A".equalsIgnoreCase(this.build) || Strings.isNullOrEmpty(this.build)) {
+                buildName = StringUtils.EMPTY;
+            } else {
+                buildName = "/" + this.build.replaceAll("[^a-zA-Z0-9]", "_");
+            }
         }
-    }
-
-    private void buildBuildName() {
-        if ("N/A".equalsIgnoreCase(this.build) || Strings.isNullOrEmpty(this.build)) {
-            buildName = StringUtils.EMPTY;
-        } else {
-            buildName = "/" + this.build.replaceAll("[^a-zA-Z0-9]", "_");
-        }
+        return buildName;
     }
 
     public String getBrowserAndPlatform() {
@@ -254,20 +305,24 @@ public class TestInformation {
         return String.format("%s %s, %s", browser, browserVersion, platform);
     }
 
-    public JsonObject getMetadata() { return this.metadata;}
-    public void setMetadata(JsonObject metadata) { this.metadata = metadata;}
-
-    public boolean equals(Object obj) {
-        if (obj == null) return false;
-        if (obj == this) return true;
-
-        if (!(obj instanceof TestInformation)) return false;
-        TestInformation o = (TestInformation) obj;
-        return o.getVideoFileName().equals(this.getVideoFileName());
+    public JsonObject getMetadata() {
+        return this.metadata;
     }
 
-    public String getHarsFolderPath() {
-        return harsFolderPath;
+    public void setMetadata(JsonObject metadata) {
+        this.metadata = metadata;
+    }
+
+    public boolean equals(Object obj) {
+        if (obj == null)
+            return false;
+        if (obj == this)
+            return true;
+
+        if (!(obj instanceof TestInformation))
+            return false;
+        TestInformation o = (TestInformation) obj;
+        return o.getVideoFileName().equals(this.getVideoFileName());
     }
 
     public void setHarsFolderPath(String harsFolderPath) {
@@ -275,10 +330,7 @@ public class TestInformation {
     }
 
     public enum TestStatus {
-        COMPLETED(" 'Zalenium', 'TEST COMPLETED', --icon=/home/seluser/images/completed.png"),
-        TIMEOUT(" 'Zalenium', 'TEST TIMED OUT', --icon=/home/seluser/images/timeout.png"),
-        SUCCESS(" 'Zalenium', 'TEST PASSED', --icon=/home/seluser/images/success.png"),
-        FAILED(" 'Zalenium', 'TEST FAILED', --icon=/home/seluser/images/failure.png");
+        COMPLETED(" 'Zalenium', 'TEST COMPLETED', --icon=/home/seluser/images/completed.png"), TIMEOUT(" 'Zalenium', 'TEST TIMED OUT', --icon=/home/seluser/images/timeout.png"), SUCCESS(" 'Zalenium', 'TEST PASSED', --icon=/home/seluser/images/success.png"), FAILED(" 'Zalenium', 'TEST FAILED', --icon=/home/seluser/images/failure.png");
 
         private String testNotificationMessage;
 
@@ -291,7 +343,7 @@ public class TestInformation {
         }
     }
 
-    private TestInformation(TestInformationBuilder builder) {
+    private TestInformation(TestInformationBuilder builder) { // TODO No pass in ?
         this.seleniumSessionId = builder.seleniumSessionId;
         this.testName = builder.testName;
         this.timestamp = new Date();
@@ -301,7 +353,6 @@ public class TestInformation {
         this.platform = builder.platform;
         this.platformVersion = builder.platformVersion;
         this.videoUrl = builder.videoUrl;
-        this.harUrl = builder.harUrl;
         this.videoFileExtension = Optional.ofNullable(builder.fileExtension).orElse(StringUtils.EMPTY);
         this.logUrls = builder.logUrls;
         this.remoteLogFiles = builder.remoteLogFiles;
@@ -312,30 +363,44 @@ public class TestInformation {
         this.testStatus = builder.testStatus;
         this.videoRecorded = true;
         this.metadata = builder.metadata;
-        buildBuildName();
-        buildTestNameNoExtension();
         buildVideoFileName();
-        buildHarsFileName();
     }
 
     public static class TestInformationBuilder { // TODO jlamaille Lombok Builder
         private String seleniumSessionId;
+
         private String testName;
+
         private String proxyName;
+
         private String browser;
+
         private String browserVersion;
+
         private String platform;
+
         private String platformVersion;
+
         private String fileExtension;
+
         private String videoUrl;
+
         private String harUrl;
+
         private List<String> logUrls;
+
         private String screenDimension;
+
         private String timeZone;
+
         private String build;
+
         private String testFileNameTemplate;
+
         private TestStatus testStatus;
+
         private JsonObject metadata;
+
         private List<RemoteLogFile> remoteLogFiles;
 
         public TestInformationBuilder withSeleniumSessionId(String seleniumSessionId) {

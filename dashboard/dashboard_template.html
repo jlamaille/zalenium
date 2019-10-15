@@ -8,12 +8,15 @@
         <link rel="icon" href="zalando.ico">
 
         <title>Zalenium - Dashboard</title>
-        <link rel="stylesheet" href="css/bootstrap.min.css">
-        <link href="css/dashboard.css" rel="stylesheet">
+        <link rel="stylesheet" href="css/bootstrap.min.css" />
+        <link rel="stylesheet" href="css/dashboard.css" />
+        <link rel="stylesheet" href="css/har-viewer.css" />
         <script src="js/jquery.min.js"></script>
+        <script src="jquery-2.2.3.min.js"></script>
         <script src="js/tether.min.js"></script>
         <script src="js/bootstrap.bundle.min.js"></script>
         <script src="js/dashboard.js"></script>
+        <script src="js/HarViewer.js"></script>
     </head>
 
     <body>
@@ -102,10 +105,10 @@
                                     <li class="nav-item">
                                         <a class="nav-link" data-toggle="tab" href="#logs" role="tab">Logs</a>
                                     </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link" data-toggle="tab" href="#harView" role="tab">Har</a>
+                                    </li>
                                 </ul>
-
-<!--                                TODO JLA à faire-->
-<!--                                https://github.com/s3u/har-view-->
 
                                 <div class="tab-content" id="videoLogsContent">
                                     <div class="tab-pane fade show active" id="videoFile" role="tabpanel">
@@ -113,6 +116,11 @@
                                             <video id="video" controls autoplay class="embed-responsive-item">
                                                 <source id="video-source" src="" type=video/mp4>
                                             </video>
+                                        </div>
+                                    </div>
+                                    <div class="tab-pane fade show active" id="harView" role="tabpanel">
+                                        <div align="center" class="embed-responsive embed-responsive-16by9 bg-faded">
+                                            <div id="har-view"></div>
                                         </div>
                                     </div>
                                     <div class="tab-pane fade" id="logs" role="tabpanel">
