@@ -13,7 +13,7 @@ function addTestItem(item) {
     }
     let buildDirectory = item.videoFolderPath.replace("/home/seluser/videos", "");
     buildDirectory = buildDirectory.trim().length > 0 ? buildDirectory.replace("/", "").concat("/") : "";
-    const fileName = buildDirectory.concat(item.fileName);
+    const fileName = buildDirectory.concat(item.videoFileName);
     const seleniumLogFileName = buildDirectory.concat(item.seleniumLogFileName);
     const browserDriverLogFileName = buildDirectory.concat(item.browserDriverLogFileName);
     const harFileName = item.harsFolderPath.replace("/home/seluser/videos/", "").concat("/").concat(item.harFileName);

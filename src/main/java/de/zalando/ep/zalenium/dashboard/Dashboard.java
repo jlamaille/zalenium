@@ -279,9 +279,9 @@ public class Dashboard implements DashboardInterface {
             String  buildDirectory = testInformation.getVideoFolderPath().replace("/home/seluser/videos", "");
             buildDirectory = buildDirectory.trim().length() > 0 ? buildDirectory.replace("/", "").concat("/") : "";
             String fileName = buildDirectory.concat(testInformation.getVideoFileName());
-            String seleniumLogFileName = "logs/".concat(buildDirectory).concat(testInformation.getSeleniumLogFileName()
+            String seleniumLogFileName = buildDirectory.concat("logs/").concat(testInformation.getSeleniumLogFileName()
                     .replace("logs/", ""));
-            String browserDriverLogFileName = "logs/".concat(buildDirectory).concat(testInformation.getBrowserDriverLogFileName()
+            String browserDriverLogFileName = buildDirectory.concat("logs/").concat(testInformation.getBrowserDriverLogFileName()
                     .replace("logs/", ""));
             String harFileName = testInformation.getHarsFolderPath().replace("/home/seluser/videos/", "").concat("/").concat(testInformation.getHarFileName());
             String testItem = itemTemplate
