@@ -168,9 +168,15 @@ public class TestInformation {
         return timeZone;
     }
 
-    public String getBuild() {
-        return build;
-    }
+    public String getBuild() { return build; }
+
+    public String getHarsFolderPath() { return harsFolderPath; }
+
+    public String getHarFileName() { return harFileName; }
+
+    public String getSeleniumLogFileName() { return seleniumLogFileName; }
+
+    public String getBrowserDriverLogFileName() { return browserDriverLogFileName; }
 
     public Date getRetentionDate() {
         return retentionDate;
@@ -189,7 +195,7 @@ public class TestInformation {
     }
 
     public void buildSeleniumLogFileName() {
-        String fileName = Dashboard.LOGS_FOLDER_NAME + "/" +  getTestNameNoExtension() + "/";
+        String fileName = Dashboard.LOGS_FOLDER_NAME + "/" + testNameNoExtension + "/";
         if (ZALENIUM_PROXY_NAME.equalsIgnoreCase(proxyName)) {
             seleniumLogFileName = fileName.concat("selenium-multinode-stderr.log");
         } else if (SAUCE_LABS_PROXY_NAME.equalsIgnoreCase(proxyName)) {
@@ -203,22 +209,8 @@ public class TestInformation {
         }
     }
 
-    public String getSeleniumLogFileName() {
-        if (Strings.isNullOrEmpty(seleniumLogFileName)) {
-            buildSeleniumLogFileName();
-        }
-        return seleniumLogFileName;
-    }
-
-    public String getTestFileNameTemplate() {
-        if(StringUtils.isEmpty(testFileNameTemplate)) {
-            this.testFileNameTemplate = TEST_FILE_NAME_TEMPLATE;
-        }
-        return testFileNameTemplate;
-    }
-
     public void buildBrowserDriverLogFileName() {
-        String fileName = Dashboard.LOGS_FOLDER_NAME + "/" +  getTestNameNoExtension() + "/";
+        String fileName = Dashboard.LOGS_FOLDER_NAME + "/" + testNameNoExtension + "/";
         if (ZALENIUM_PROXY_NAME.equalsIgnoreCase(proxyName)) {
             browserDriverLogFileName = fileName.concat(String.format("%s_driver.log", browser.toLowerCase()));
         } else if (SAUCE_LABS_PROXY_NAME.equalsIgnoreCase(proxyName)) {
@@ -233,13 +225,6 @@ public class TestInformation {
 
     }
 
-    public String getBrowserDriverLogFileName() {
-        if (Strings.isNullOrEmpty(browserDriverLogFileName)) {
-            buildBrowserDriverLogFileName();
-        }
-        return browserDriverLogFileName;
-    }
-
     @SuppressWarnings("SameParameterValue")
     public void setVideoFileExtension(String videoFileExtension) {
         this.videoFileExtension = videoFileExtension;
@@ -247,55 +232,31 @@ public class TestInformation {
     }
 
     public void buildVideoFileName() {
-        this.videoFileName = FILE_NAME_TEMPLATE.replace("{fileName}", getTestNameNoExtension())
+        this.videoFileName = FILE_NAME_TEMPLATE.replace("{fileName}", testNameNoExtension)
                 .replace("{fileExtension}", videoFileExtension);
 
-        this.videoFolderPath = commonProxyUtilities.currentLocalPath() + "/" + Dashboard.VIDEOS_FOLDER_NAME + getBuildName();
+        this.videoFolderPath = commonProxyUtilities.currentLocalPath() + "/" + Dashboard.VIDEOS_FOLDER_NAME + buildName;
         this.logsFolderPath = commonProxyUtilities.currentLocalPath() + "/" + Dashboard.VIDEOS_FOLDER_NAME +
-                getBuildName() + "/" + Dashboard.LOGS_FOLDER_NAME + "/" +  getTestNameNoExtension();
+                buildName + "/" + Dashboard.LOGS_FOLDER_NAME + "/" + testNameNoExtension;
     }
 
-    public String getHarsFolderPath() {
-        if(StringUtils.isEmpty(harsFolderPath)) {
-            this.harsFolderPath = commonProxyUtilities.currentLocalPath() + "/" + Dashboard.VIDEOS_FOLDER_NAME +
-                  getBuildName() +  "/" + Dashboard.HARS_FOLDER_NAME;
-        }
-        return harsFolderPath;
+    private void buildTestNameNoExtension() {
+        this.testNameNoExtension = this.testFileNameTemplate
+                .replace("{proxyName}", this.proxyName.toLowerCase())
+                .replace("{testName}", getTestName())
+                .replace("{browser}", this.browser)
+                .replace("{platform}", this.platform)
+                .replace("{timestamp}", commonProxyUtilities.getDateAndTimeFormatted(this.timestamp))
+                .replace("{testStatus}", getTestStatus().toString())
+                .replaceAll("[^a-zA-Z0-9]", "_");
     }
 
-    public String getHarFileName() {
-        if(StringUtils.isEmpty(harFileName)) {
-            this.harFileName = FILE_NAME_TEMPLATE.replace("{fileName}", getTestNameNoExtension())
-                    .replace("{fileExtension}", ".har");
+    private void buildBuildName() {
+        if ("N/A".equalsIgnoreCase(this.build) || Strings.isNullOrEmpty(this.build)) {
+            buildName = StringUtils.EMPTY;
+        } else {
+            buildName = "/" + this.build.replaceAll("[^a-zA-Z0-9]", "_");
         }
-        return harFileName;
-    }
-
-    private String getTestNameNoExtension() {
-        if (StringUtils.isEmpty(testNameNoExtension)) {
-            this.testNameNoExtension = this.getTestFileNameTemplate()
-                    .replace("{proxyName}", this.proxyName.toLowerCase())
-                    .replace("{testName}", getTestName())
-                    .replace("{browser}", this.browser)
-                    .replace("{platform}", this.platform)
-                    .replace("{timestamp}", commonProxyUtilities.getDateAndTimeFormatted(this.timestamp))
-                    .replace("{testStatus}", getTestStatus().toString())
-                    .replaceAll("[^a-zA-Z0-9]", "_");
-        }
-        return testNameNoExtension;
-    }
-
-
-
-    private String getBuildName() {
-        if (StringUtils.isEmpty(buildName)) {
-            if ("N/A".equalsIgnoreCase(this.build) || Strings.isNullOrEmpty(this.build)) {
-                buildName = StringUtils.EMPTY;
-            } else {
-                buildName = "/" + this.build.replaceAll("[^a-zA-Z0-9]", "_");
-            }
-        }
-        return buildName;
     }
 
     public String getBrowserAndPlatform() {
@@ -323,10 +284,6 @@ public class TestInformation {
             return false;
         TestInformation o = (TestInformation) obj;
         return o.getVideoFileName().equals(this.getVideoFileName());
-    }
-
-    public void setHarsFolderPath(String harsFolderPath) {
-        this.harsFolderPath = harsFolderPath;
     }
 
     public enum TestStatus {
@@ -363,6 +320,15 @@ public class TestInformation {
         this.testStatus = builder.testStatus;
         this.videoRecorded = true;
         this.metadata = builder.metadata;
+        buildBuildName();
+        buildTestNameNoExtension();
+        buildSeleniumLogFileName();
+        buildBrowserDriverLogFileName();
+        this.testFileNameTemplate = TEST_FILE_NAME_TEMPLATE;
+        this.harFileName = FILE_NAME_TEMPLATE.replace("{fileName}", testNameNoExtension)
+                .replace("{fileExtension}", ".har");
+        this.harsFolderPath = commonProxyUtilities.currentLocalPath() + "/" + Dashboard.VIDEOS_FOLDER_NAME +
+                buildName + "/" + Dashboard.HARS_FOLDER_NAME;
         buildVideoFileName();
     }
 
@@ -384,8 +350,6 @@ public class TestInformation {
         private String fileExtension;
 
         private String videoUrl;
-
-        private String harUrl;
 
         private List<String> logUrls;
 
@@ -445,11 +409,6 @@ public class TestInformation {
 
         public TestInformationBuilder withVideoUrl(String videoUrl) {
             this.videoUrl = videoUrl;
-            return this;
-        }
-
-        public TestInformationBuilder withHarUrl(String harUrl) {
-            this.harUrl = harUrl;
             return this;
         }
 
