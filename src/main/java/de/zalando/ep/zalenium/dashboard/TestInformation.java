@@ -3,9 +3,12 @@ package de.zalando.ep.zalenium.dashboard;
 import com.google.common.base.Strings;
 import com.google.gson.JsonObject;
 
+import de.zalando.ep.zalenium.proxy.DockerSeleniumRemoteProxy;
 import de.zalando.ep.zalenium.proxy.RemoteLogFile;
 import de.zalando.ep.zalenium.util.CommonProxyUtilities;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -17,6 +20,9 @@ import java.util.Optional;
  */
 @SuppressWarnings("WeakerAccess")
 public class TestInformation {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(TestInformation.class.getName());
+
     private static final String TEST_FILE_NAME_TEMPLATE = "{proxyName}_{testName}_{browser}_{platform}_{timestamp}_{testStatus}";
 
     private static final String FILE_NAME_TEMPLATE = "{fileName}{fileExtension}";
@@ -234,7 +240,6 @@ public class TestInformation {
     public void buildVideoFileName() {
         this.videoFileName = FILE_NAME_TEMPLATE.replace("{fileName}", testNameNoExtension)
                 .replace("{fileExtension}", videoFileExtension);
-
         this.videoFolderPath = commonProxyUtilities.currentLocalPath() + "/" + Dashboard.VIDEOS_FOLDER_NAME + buildName;
         this.logsFolderPath = commonProxyUtilities.currentLocalPath() + "/" + Dashboard.VIDEOS_FOLDER_NAME +
                 buildName + "/" + Dashboard.LOGS_FOLDER_NAME + "/" + testNameNoExtension;
@@ -316,7 +321,7 @@ public class TestInformation {
         this.screenDimension = Optional.ofNullable(builder.screenDimension).orElse(StringUtils.EMPTY);
         this.timeZone = Optional.ofNullable(builder.timeZone).orElse(StringUtils.EMPTY);
         this.build = Optional.ofNullable(builder.build).orElse(StringUtils.EMPTY);
-        this.testFileNameTemplate = Optional.ofNullable(builder.testFileNameTemplate).orElse(TEST_FILE_NAME_TEMPLATE);
+        this.testFileNameTemplate = Optional.ofNullable(builder.testFileNameTemplate).filter(StringUtils::isNotEmpty).orElse(TEST_FILE_NAME_TEMPLATE);
         this.testStatus = builder.testStatus;
         this.videoRecorded = true;
         this.metadata = builder.metadata;
@@ -324,7 +329,6 @@ public class TestInformation {
         buildTestNameNoExtension();
         buildSeleniumLogFileName();
         buildBrowserDriverLogFileName();
-        this.testFileNameTemplate = TEST_FILE_NAME_TEMPLATE;
         this.harFileName = FILE_NAME_TEMPLATE.replace("{fileName}", testNameNoExtension)
                 .replace("{fileExtension}", ".har");
         this.harsFolderPath = commonProxyUtilities.currentLocalPath() + "/" + Dashboard.VIDEOS_FOLDER_NAME +

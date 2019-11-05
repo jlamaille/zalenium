@@ -24,6 +24,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -249,7 +250,7 @@ public class Dashboard implements DashboardInterface {
         try {
             File testInformationFile = new File(getLocalVideosPath(), TEST_INFORMATION_FILE);
             // Emptying the file first and then replacing it with what comes from testInformationList
-            FileUtils.writeStringToFile(testInformationFile, "", UTF_8);
+            FileUtils.writeStringToFile(testInformationFile, StringUtils.EMPTY, UTF_8);
             Gson gson = new GsonBuilder().create();
             for (TestInformation information : testInformationList) {
                 FileUtils.writeStringToFile(testInformationFile, gson.toJson(information) + System.lineSeparator(),
@@ -276,14 +277,14 @@ public class Dashboard implements DashboardInterface {
             } else {
                 platformLogo = testInformation.getPlatform().toLowerCase();
             }
-            String  buildDirectory = testInformation.getVideoFolderPath().replace("/home/seluser/videos", "");
-            buildDirectory = buildDirectory.trim().length() > 0 ? buildDirectory.replace("/", "").concat("/") : "";
+            String  buildDirectory = testInformation.getVideoFolderPath().replace("/home/seluser/videos", StringUtils.EMPTY);
+            buildDirectory = buildDirectory.trim().length() > 0 ? buildDirectory.replace("/", StringUtils.EMPTY).concat("/") : StringUtils.EMPTY;
             String fileName = buildDirectory.concat(testInformation.getVideoFileName());
             String seleniumLogFileName = buildDirectory.concat("logs/").concat(testInformation.getSeleniumLogFileName()
-                    .replace("logs/", ""));
+                    .replace("logs/", StringUtils.EMPTY));
             String browserDriverLogFileName = buildDirectory.concat("logs/").concat(testInformation.getBrowserDriverLogFileName()
-                    .replace("logs/", ""));
-            String harFileName = testInformation.getHarsFolderPath().replace("/home/seluser/videos/", "").concat("/").concat(testInformation.getHarFileName());
+                    .replace("logs/", StringUtils.EMPTY));
+            String harFileName = testInformation.getHarsFolderPath().replace("/home/seluser/videos/", StringUtils.EMPTY).concat("/").concat(testInformation.getHarFileName());
             String testItem = itemTemplate
                     .replace("{fileName}", fileName)
                     .replace("{testName}", testInformation.getTestName())
@@ -329,7 +330,7 @@ public class Dashboard implements DashboardInterface {
         } catch (IOException e) {
             LOGGER.warn(e.toString(), e);
         }
-        return "";
+        return StringUtils.EMPTY;
     }
 
 
