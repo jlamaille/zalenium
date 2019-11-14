@@ -133,7 +133,7 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
 
     private TestInformation testInformation;
 
-    private BrowserMobProxy browserMobProxy;
+    private BrowserMobProxy browserMobProxy; // TODO Proxy Light
 
     private GoogleAnalyticsApi ga = new GoogleAnalyticsApi();
 
@@ -376,7 +376,7 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
                     && seleniumRequest.getPathInfo().endsWith("url")
                     && StringUtils.isNotEmpty(seleniumRequest.getBody())) {
                 JsonElement bodyRequest = new JsonParser().parse(seleniumRequest.getBody());
-                if (bodyRequest != null) {
+                if (bodyRequest != null && bodyRequest.getAsJsonObject() != null) {
                     JsonElement urlObject = bodyRequest.getAsJsonObject().get("url");
                     if (urlObject != null) {
                         browserMobProxy.addPageRefCaptureForHarInSubProxy(urlObject.getAsString());
@@ -815,7 +815,7 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
             videoRecording(DockerSeleniumContainerAction.STOP_RECORDING);
             processContainerAction(DockerSeleniumContainerAction.TRANSFER_LOGS, getContainerId());
 
-            if (browserMobProxy != null) {
+            if (browserMobProxy != null) { // TODO Double check alors que si 2 test s'enchaine dont un sans BMP !!
                 saveHar();
                 browserMobProxy.deleteCurrentSubProxy();
             }
@@ -834,13 +834,17 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
      * Save HAR File for current test in after session.
      */
     private void saveHar() {
-        if (testInformation != null && browserMobProxy != null && StringUtils.isNotEmpty(testInformation.getHarsFolderPath())) {
+        if (testInformation != null
+                && browserMobProxy != null
+                && StringUtils.isNotEmpty(testInformation.getHarsFolderPath())
+                && browserMobProxy.getTestSubProxyPorts() != null
+                && !browserMobProxy.getTestSubProxyPorts().isEmpty()) {
             Integer testProxyPort = browserMobProxy.getTestSubProxyPorts().iterator().next();
             // Get HAR
             LOGGER.debug("Getting HAR in browsermob proxy on port {}", testProxyPort);
 
             try {
-                if (!Files.exists(Paths.get(testInformation.getHarsFolderPath()))) {
+                if (!Files.exists(Paths.get(testInformation.getHarsFolderPath()))) { // TODO Mutualisation ?
                     Path directories = Files.createDirectories(Paths.get(testInformation.getHarsFolderPath()));
                     CommonProxyUtilities.setFilePermissions(directories);
                     CommonProxyUtilities.setFilePermissions(directories.getParent());
