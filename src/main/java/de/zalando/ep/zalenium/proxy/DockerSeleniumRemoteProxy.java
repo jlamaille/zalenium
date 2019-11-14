@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import de.zalando.ep.zalenium.browsermobproxy.BrowserMobProxy;
+import de.zalando.ep.zalenium.proxylight.SeleniumProxyLight;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.io.FileUtils;
@@ -133,7 +133,7 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
 
     private TestInformation testInformation;
 
-    private BrowserMobProxy browserMobProxy; // TODO Proxy Light
+    private SeleniumProxyLight seleniumProxyLight; // TODO Proxy Light
 
     private GoogleAnalyticsApi ga = new GoogleAnalyticsApi();
 
@@ -257,7 +257,7 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
         if (DockerSeleniumRemoteProxy.DEFAULT_ENVIRONMENT.getBooleanEnvVariable(BROWSERMOBPROXY, false)
                 && getRemoteHost() != null
                 && StringUtils.isNotEmpty(getRemoteHost().getHost())) {
-            browserMobProxy = new BrowserMobProxy(getRemoteHost().getHost(), requestedCapability);
+            seleniumProxyLight = new SeleniumProxyLight(getRemoteHost().getHost(), 8080, requestedCapability); // TODO param 8080 JLA
         }
 
         if (this.timedOut.get()) {
@@ -371,7 +371,7 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
             WebDriverRequest seleniumRequest = (WebDriverRequest) request;
 
             // Add pageRef if current command is get url
-            if (browserMobProxy != null
+            if (seleniumProxyLight != null
                     && StringUtils.isNotEmpty(seleniumRequest.getPathInfo())
                     && seleniumRequest.getPathInfo().endsWith("url")
                     && StringUtils.isNotEmpty(seleniumRequest.getBody())) {
@@ -379,7 +379,7 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
                 if (bodyRequest != null && bodyRequest.getAsJsonObject() != null) {
                     JsonElement urlObject = bodyRequest.getAsJsonObject().get("url");
                     if (urlObject != null) {
-                        browserMobProxy.addPageRefCaptureForHarInSubProxy(urlObject.getAsString());
+                        seleniumProxyLight.addPageRefCaptureForHarInSubProxy(urlObject.getAsString());
                     }
                 }
             }
@@ -815,9 +815,9 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
             videoRecording(DockerSeleniumContainerAction.STOP_RECORDING);
             processContainerAction(DockerSeleniumContainerAction.TRANSFER_LOGS, getContainerId());
 
-            if (browserMobProxy != null) { // TODO Double check alors que si 2 test s'enchaine dont un sans BMP !!
-                saveHar();
-                browserMobProxy.deleteCurrentSubProxy();
+            if (seleniumProxyLight != null) { // TODO Double check alors que si 2 test s'enchaine dont un sans BMP !!
+                seleniumProxyLight.saveHar(testInformation);
+                seleniumProxyLight.deleteCurrentSubProxy();
             }
 
             processContainerAction(DockerSeleniumContainerAction.CLEANUP_CONTAINER, getContainerId());
@@ -827,37 +827,6 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
             }
         } finally {
             this.unsetCleaningMarker();
-        }
-    }
-
-    /**
-     * Save HAR File for current test in after session.
-     */
-    private void saveHar() {
-        if (testInformation != null
-                && browserMobProxy != null
-                && StringUtils.isNotEmpty(testInformation.getHarsFolderPath())
-                && browserMobProxy.getTestSubProxyPorts() != null
-                && !browserMobProxy.getTestSubProxyPorts().isEmpty()) {
-            Integer testProxyPort = browserMobProxy.getTestSubProxyPorts().iterator().next();
-            // Get HAR
-            LOGGER.debug("Getting HAR in browsermob proxy on port {}", testProxyPort);
-
-            try {
-                if (!Files.exists(Paths.get(testInformation.getHarsFolderPath()))) { // TODO Mutualisation ?
-                    Path directories = Files.createDirectories(Paths.get(testInformation.getHarsFolderPath()));
-                    CommonProxyUtilities.setFilePermissions(directories);
-                    CommonProxyUtilities.setFilePermissions(directories.getParent());
-                }
-                ResponseEntity<String> har = browserMobProxy.getHarForCurrentSubProxy();
-                String fileName = String.format("%s/%s", testInformation.getHarsFolderPath(), testInformation.getHarFileName());
-                FileUtils.writeStringToFile(new File(fileName), har.getBody(), StandardCharsets.UTF_8);
-                Path harFile = Paths.get(fileName);
-                CommonProxyUtilities.setFilePermissions(harFile);
-            } catch (RestClientException | IOException e) {
-                e.printStackTrace();
-                LOGGER.error("Error when getting HAR in browsermob proxy. {}.", e.getLocalizedMessage());
-            }
         }
     }
 
