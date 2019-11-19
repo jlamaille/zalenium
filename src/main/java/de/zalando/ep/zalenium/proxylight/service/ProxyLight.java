@@ -6,17 +6,19 @@ import java.util.Map;
 
 public interface ProxyLight {
 
-    String getHarAsJson(Integer port);
+    String getProxyUrl();
 
-    Integer create();
+    String getHarAsJson();
 
-    Integer create(final String subProxy);
+    ProxyLight create();
 
-    void delete(final Integer port);
+    ProxyLight create(final String subProxy);
 
-    void addOverridedHeaders(final Integer port, final Map<String, Object> overridedHeaders);
+    ProxyLight delete();
 
-    void addCapturePage(final Integer port, final String pageId);
+    ProxyLight addOverridedHeaders(final Map<String, Object> overridedHeaders);
 
-    void addBlackOrWhiteList(final Integer port, final FilterUrlType filterUrlType, final String regexPaternFilter);
+    ProxyLight addCapturePage(final String pageId);
+
+    ProxyLight addBlackOrWhiteList(final FilterUrlType filterUrlType, final String regexPaternFilter);
 }

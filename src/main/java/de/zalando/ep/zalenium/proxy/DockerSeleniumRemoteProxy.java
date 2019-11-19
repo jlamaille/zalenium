@@ -1,8 +1,6 @@
 package de.zalando.ep.zalenium.proxy;
 
-import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -20,7 +18,6 @@ import javax.servlet.http.HttpServletResponse;
 import de.zalando.ep.zalenium.proxylight.SeleniumProxyLight;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.openqa.grid.common.RegistrationRequest;
 import org.openqa.grid.common.exception.RemoteException;
@@ -38,6 +35,7 @@ import org.openqa.grid.web.servlet.console.DefaultProxyHtmlRenderer;
 import org.openqa.grid.web.servlet.handler.RequestType;
 import org.openqa.grid.web.servlet.handler.WebDriverRequest;
 import org.openqa.selenium.Platform;
+import org.openqa.selenium.Proxy;
 import org.openqa.selenium.remote.CapabilityType;
 import org.openqa.selenium.remote.server.jmx.ManagedService;
 import org.slf4j.Logger;
@@ -59,8 +57,6 @@ import de.zalando.ep.zalenium.matcher.ZaleniumCapabilityType;
 import de.zalando.ep.zalenium.util.CommonProxyUtilities;
 import de.zalando.ep.zalenium.util.Environment;
 import de.zalando.ep.zalenium.util.GoogleAnalyticsApi;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.client.RestClientException;
 
 /*
     The implementation of this class was inspired on https://gist.github.com/krmahadevan/4649607
@@ -258,6 +254,14 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
                 && getRemoteHost() != null
                 && StringUtils.isNotEmpty(getRemoteHost().getHost())) {
             seleniumProxyLight = new SeleniumProxyLight(getRemoteHost().getHost(), 8080, requestedCapability); // TODO param 8080 JLA
+// TODO JLA on ne va pas recréer un objet a chaque fois ? donc à revoir mais on a pas d'injection en spring de service
+            // Set proxy on browser
+            Proxy seleniumProxy = new Proxy();
+            seleniumProxy.setHttpProxy(seleniumProxyLight.getProxyUrlForBrowser());
+            seleniumProxy.setSslProxy(seleniumProxy.getHttpProxy());
+            seleniumProxy.setProxyType(Proxy.ProxyType.MANUAL);
+            requestedCapability.put(CapabilityType.PROXY, seleniumProxy);
+
         }
 
         if (this.timedOut.get()) {
@@ -379,7 +383,7 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
                 if (bodyRequest != null && bodyRequest.getAsJsonObject() != null) {
                     JsonElement urlObject = bodyRequest.getAsJsonObject().get("url");
                     if (urlObject != null) {
-                        seleniumProxyLight.addPageRefCaptureForHarInSubProxy(urlObject.getAsString());
+                        seleniumProxyLight.addPageRefCaptureForHar(urlObject.getAsString());
                     }
                 }
             }
@@ -815,10 +819,8 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
             videoRecording(DockerSeleniumContainerAction.STOP_RECORDING);
             processContainerAction(DockerSeleniumContainerAction.TRANSFER_LOGS, getContainerId());
 
-            if (seleniumProxyLight != null) { // TODO Double check alors que si 2 test s'enchaine dont un sans BMP !!
-                seleniumProxyLight.saveHar(testInformation);
-                seleniumProxyLight.deleteCurrentSubProxy();
-            }
+            seleniumProxyLight.saveHar(testInformation);
+            seleniumProxyLight.delete();
 
             processContainerAction(DockerSeleniumContainerAction.CLEANUP_CONTAINER, getContainerId());
 
