@@ -15,13 +15,18 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
 import de.zalando.ep.zalenium.dashboard.TestInformation;
 import de.zalando.ep.zalenium.proxylight.service.ProxyLight;
 import de.zalando.ep.zalenium.proxylight.service.impl.BrowserMobProxy;
 import de.zalando.ep.zalenium.util.CommonProxyUtilities;
 import org.apache.commons.collections4.SetUtils;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.bouncycastle.util.Arrays;
+import org.openqa.grid.web.servlet.handler.SeleniumBasedRequest;
 import org.openqa.selenium.Proxy;
 import org.openqa.selenium.remote.CapabilityType;
 import org.slf4j.Logger;
@@ -36,18 +41,19 @@ public class SeleniumProxyLight {
 
     private ProxyLight proxyLight;
 
+    public ProxyLight getProxyLight() {
+        return proxyLight;
+    }
+
     public SeleniumProxyLight(final String host, final Integer port, final Map<String, Object> requestedCapabilities) {
         createSubProxy(host, port, requestedCapabilities);
 
         if (proxyLight != null) {
-            requestedCapabilities.entrySet().stream().filter(requestedCapability -> requestedCapability.getKey().equals(ZaleniumCapabilityType.BROWSERMOBPROXY_WHITE_LIST) ||
-                    requestedCapability.getKey().equals(ZaleniumCapabilityType.BROWSERMOBPROXY_BLACK_LIST)).forEach(this::addFilterWhiteOrBlackList);
-            requestedCapabilities.entrySet().stream().filter(r -> r.getKey().equals(ZaleniumCapabilityType.BROWSERMOBPROXY_HEADERS)).findFirst().ifPresent(this::addHeaders);
+            requestedCapabilities.entrySet().stream().filter(requestedCapability -> requestedCapability.getKey().equals(ZaleniumCapabilityType.BROWSERMOBPROXY_WHITE_LIST) || requestedCapability.getKey().equals(ZaleniumCapabilityType.BROWSERMOBPROXY_BLACK_LIST)).forEach(this::addFilterWhiteOrBlackList);
+            requestedCapabilities.entrySet().stream().filter(r -> r.getKey().equals(ZaleniumCapabilityType.BROWSERMOBPROXY_HEADERS))
+                    .findFirst()
+                    .ifPresent(this::addHeaders);
         }
-    }
-
-    public String getProxyUrlForBrowser() {
-        return proxyLight.getProxyUrl();
     }
 
     /**
@@ -89,9 +95,18 @@ public class SeleniumProxyLight {
         }
     }
 
-    public void addPageRefCaptureForHar(final String urlPageRef) { // TODO Utilité de la méthode ?
-        if (proxyLight != null && StringUtils.isEmpty(urlPageRef)) {
-            proxyLight.addCapturePage(urlPageRef);
+    public void addPageRefCaptureForHar(final SeleniumBasedRequest seleniumRequest) {
+        if (proxyLight != null && seleniumRequest != null
+                && StringUtils.isNotEmpty(seleniumRequest.getPathInfo())
+                && seleniumRequest.getPathInfo().endsWith("url")
+                && StringUtils.isNotEmpty(seleniumRequest.getBody())) {
+            JsonElement bodyRequest = new JsonParser().parse(seleniumRequest.getBody());
+            if (bodyRequest != null && bodyRequest.getAsJsonObject() != null) {
+                JsonElement urlObject = bodyRequest.getAsJsonObject().get("url");
+                if (urlObject != null) {
+                    proxyLight.addCapturePage(urlObject.getAsString());
+                }
+            }
         }
     }
 
@@ -121,15 +136,6 @@ public class SeleniumProxyLight {
         }
         LOGGER.debug("Adding headers '{}'", Collections.unmodifiableMap(overridedHeaders));
         proxyLight.addOverridedHeaders(overridedHeaders);
-    }
-
-    /**
-     * Delete proxy for current test in after session.
-     */
-    public void delete() {
-        if (proxyLight != null) {
-            proxyLight.delete();
-        }
     }
 
     /**
