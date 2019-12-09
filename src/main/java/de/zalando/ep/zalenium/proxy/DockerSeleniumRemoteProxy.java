@@ -251,24 +251,7 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
         String currentName = configureThreadName();
         LOGGER.debug("Getting new session request {}", requestedCapability);
 
-        if (DockerSeleniumRemoteProxy.DEFAULT_ENVIRONMENT.getBooleanEnvVariable(BROWSERMOBPROXY, false)
-                && getRemoteHost() != null
-                && StringUtils.isNotEmpty(getRemoteHost().getHost())) {
-            seleniumProxyLight = new SeleniumProxyLight(getRemoteHost().getHost(), 8080, requestedCapability); // TODO param 8080 JLA
-
-// TODO JLA on ne va pas recréer un objet a chaque fois ? donc à revoir mais on a pas d'injection en spring de service
-
-            if (seleniumProxyLight.getProxyLight() != null) {
-                // Set proxy on browser
-                Proxy seleniumProxy = new Proxy();
-                seleniumProxy.setHttpProxy(seleniumProxyLight.getProxyLight().getProxyUrl());
-                seleniumProxy.setSslProxy(seleniumProxy.getHttpProxy());
-                seleniumProxy.setProxyType(Proxy.ProxyType.MANUAL);
-                requestedCapability.put(CapabilityType.PROXY, seleniumProxy);
-
-            }
-
-        }
+        addProxyLight(requestedCapability);
 
         if (this.timedOut.get()) {
             LOGGER.debug("Proxy has timed out, not accepting new sessions.");
@@ -298,6 +281,29 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
         LOGGER.debug("No more sessions allowed");
         setThreadName(currentName);
         return null;
+    }
+
+    private void addProxyLight(Map<String, Object> requestedCapability) {
+        if (DockerSeleniumRemoteProxy.DEFAULT_ENVIRONMENT.getBooleanEnvVariable(BROWSERMOBPROXY, false)
+                && getRemoteHost() != null
+                && StringUtils.isNotEmpty(getRemoteHost().getHost())) {
+            // TODO JLA on ne va pas recréer un objet a chaque fois ? donc à revoir mais on a pas d'injection en spring de service
+            seleniumProxyLight = new SeleniumProxyLight(getRemoteHost().getHost(), 8080, requestedCapability); // TODO param 8080 JLA
+            seleniumProxyLight.createSubProxy();
+            seleniumProxyLight.addFilterWhiteOrBlackList();
+            seleniumProxyLight.addFilterWhiteOrBlackList();
+
+            if (seleniumProxyLight.getProxyLight() != null) {
+                // Set proxy on browser
+                Proxy seleniumProxy = new Proxy();
+                seleniumProxy.setHttpProxy(seleniumProxyLight.getProxyLight().getProxyUrl());
+                seleniumProxy.setSslProxy(seleniumProxy.getHttpProxy());
+                seleniumProxy.setProxyType(Proxy.ProxyType.MANUAL);
+                requestedCapability.put(CapabilityType.PROXY, seleniumProxy);
+
+            }
+
+        }
     }
 
     private TestSession createNewSession(Map<String, Object> requestedCapability) {

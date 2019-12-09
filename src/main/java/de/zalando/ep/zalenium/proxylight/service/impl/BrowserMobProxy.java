@@ -3,6 +3,7 @@ package de.zalando.ep.zalenium.proxylight.service.impl;
 import java.util.Map;
 import java.util.Optional;
 
+import com.google.common.annotations.VisibleForTesting;
 import de.zalando.ep.zalenium.proxylight.FilterUrlType;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -33,8 +34,9 @@ public class BrowserMobProxy implements ProxyLight {
     private static final String PATH_HEADERS = "headers";
     public static final String LOCALHOST = "127.0.0.1";
 
+
     // Object to manipulate Rest Service
-    private RestTemplate restTemplate = new RestTemplate();
+    private RestTemplate restTemplate;
 
     private UriComponentsBuilder uriProxyServer;
 
@@ -45,6 +47,12 @@ public class BrowserMobProxy implements ProxyLight {
 
     public BrowserMobProxy(final String proxyServerHost, final Integer proxyServerPort) {
         this.uriProxyServer = UriComponentsBuilder.newInstance().scheme(HTTP).host(proxyServerHost).port(proxyServerPort).path(PROXY_PATH);
+        restTemplate = new RestTemplate();
+    }
+
+    @VisibleForTesting
+    public void setRestTemplate(RestTemplate restTemplate) {
+        this.restTemplate = restTemplate;
     }
 
     @Override

@@ -15,6 +15,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import de.zalando.ep.zalenium.dashboard.TestInformation;
@@ -39,57 +40,52 @@ public class SeleniumProxyLight {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SeleniumProxyLight.class.getName());
 
+    public static final String PROXY_TYPE = "proxyType";
+
+    public static final String HTTP_PROXY = "httpProxy";
+
     private ProxyLight proxyLight;
+
+    private Map<String, Object> requestedCapabilities;
 
     public ProxyLight getProxyLight() {
         return proxyLight;
     }
 
     public SeleniumProxyLight(final String host, final Integer port, final Map<String, Object> requestedCapabilities) {
-        createSubProxy(host, port, requestedCapabilities);
-
-        if (proxyLight != null) {
-            requestedCapabilities.entrySet().stream().filter(requestedCapability -> requestedCapability.getKey().equals(ZaleniumCapabilityType.BROWSERMOBPROXY_WHITE_LIST) || requestedCapability.getKey().equals(ZaleniumCapabilityType.BROWSERMOBPROXY_BLACK_LIST)).forEach(this::addFilterWhiteOrBlackList);
-            requestedCapabilities.entrySet().stream().filter(r -> r.getKey().equals(ZaleniumCapabilityType.BROWSERMOBPROXY_HEADERS))
-                    .findFirst()
-                    .ifPresent(this::addHeaders);
-        }
+        proxyLight = new BrowserMobProxy(host, port);
+        this.requestedCapabilities = requestedCapabilities;
     }
 
     /**
      * Allows to create sub proxy for current test execution.
-     *
-     * @param host
-     * @param port
-     * @param requestedCapabilities : requested capability
      */
-    private void createSubProxy(final String host, final Integer port, final Map<String, Object> requestedCapabilities) {
-
+    public void createSubProxy() {
         // Create proxy with proxy service. One proxy for one session.
         LOGGER.debug("Creating proxy...");
 
+        boolean proxyCreated = false;
         if (requestedCapabilities != null
                 && requestedCapabilities.containsKey(CapabilityType.PROXY)
                 && requestedCapabilities.get(CapabilityType.PROXY) instanceof TreeMap) {
-            proxyLight = new BrowserMobProxy(host, port);
-            Integer testProxyPort = null;
             TreeMap proxy = (TreeMap) requestedCapabilities.get(CapabilityType.PROXY);
             if (proxy != null) {
                 String proxyType;
                 String httpProxy;
                 try {
-                    proxyType = (String) proxy.getOrDefault("proxyType", StringUtils.EMPTY);
-                    httpProxy = (String) proxy.getOrDefault("httpProxy", StringUtils.EMPTY);
+                    proxyType = (String) proxy.getOrDefault(PROXY_TYPE, StringUtils.EMPTY);
+                    httpProxy = (String) proxy.getOrDefault(HTTP_PROXY, StringUtils.EMPTY);
                 } catch (ClassCastException e) {
                     throw new RuntimeException("Error when getting proxyType or httpProxy in proxy : " + proxy + ". Type required 'String'.", e);
                 }
                 if (proxyType.equalsIgnoreCase(String.valueOf(Proxy.ProxyType.MANUAL)) && StringUtils.isNotEmpty(httpProxy)) {
                     LOGGER.debug("Request capability contains proxy {}.", proxy.toString());
                     proxyLight.create(httpProxy);
+                    proxyCreated = true;
                 }
             }
 
-            if (testProxyPort == null) {
+            if (!proxyCreated) {
                 proxyLight.create();
             }
         }
@@ -111,31 +107,38 @@ public class SeleniumProxyLight {
     }
 
     /**
-     * Add filters in sub proxy for each browser's request.
-     *
-     * @param capability : required capability
+     * If needed, add filters in sub proxy for each browser's request.
      */
-    private void addFilterWhiteOrBlackList(final Map.Entry<String, Object> capability) {
-        FilterUrlType filterUrlType = capability.getKey().equals(ZaleniumCapabilityType.BROWSERMOBPROXY_WHITE_LIST) ? FilterUrlType.WHITELIST : FilterUrlType.BLACKLIST;
-        String regex = String.valueOf(capability.getValue());
-        LOGGER.debug("Adding {} '{}' on light proxy", filterUrlType.name(), regex);
-        proxyLight.addBlackOrWhiteList(filterUrlType, regex);
+    public void addFilterWhiteOrBlackList() {
+        if (proxyLight != null) {
+            requestedCapabilities.entrySet().stream().filter(capability -> capability.getKey().equals(ZaleniumCapabilityType.BROWSERMOBPROXY_WHITE_LIST) || capability.getKey().equals(ZaleniumCapabilityType.BROWSERMOBPROXY_BLACK_LIST)).forEach(capability -> {
+                FilterUrlType filterUrlType = capability.getKey().equals(ZaleniumCapabilityType.BROWSERMOBPROXY_WHITE_LIST) ? FilterUrlType.WHITELIST : FilterUrlType.BLACKLIST;
+                String regex = String.valueOf(capability.getValue());
+                LOGGER.debug("Adding {} '{}' on light proxy", filterUrlType.name(), regex);
+                proxyLight.addBlackOrWhiteList(filterUrlType, regex);
+
+            });
+        }
     }
 
     /**
-     * Add headers in sub proxy for each browser's request.
-     *
-     * @param capability : required capability
+     * If needed, add headers in sub proxy for each browser's request.
      */
-    private void addHeaders(final Map.Entry<String, Object> capability) {
-        Map<String, Object> overridedHeaders;
-        try {
-            overridedHeaders = (HashMap<String, Object>) capability.getValue();
-        } catch (ClassCastException e) {
-            throw new RuntimeException("Error when getting capabilities " + capability.getValue() + ". Type required 'HashMap<String, Object>'.", e);
+    public void addHeaders() {
+        if (proxyLight != null) {
+            requestedCapabilities.entrySet().stream().filter(capability -> capability.getKey().equals(ZaleniumCapabilityType.BROWSERMOBPROXY_HEADERS))
+                    .findFirst()
+                    .ifPresent(capability -> {
+                        Map<String, Object> overridedHeaders;
+                        try {
+                            overridedHeaders = (HashMap<String, Object>) capability.getValue();
+                        } catch (ClassCastException e) {
+                            throw new RuntimeException("Error when getting capabilities " + capability.getValue() + ". Type required 'HashMap<String, Object>'.", e);
+                        }
+                        LOGGER.debug("Adding headers '{}'", Collections.unmodifiableMap(overridedHeaders));
+                        proxyLight.addOverridedHeaders(overridedHeaders);
+                    });
         }
-        LOGGER.debug("Adding headers '{}'", Collections.unmodifiableMap(overridedHeaders));
-        proxyLight.addOverridedHeaders(overridedHeaders);
     }
 
     /**
