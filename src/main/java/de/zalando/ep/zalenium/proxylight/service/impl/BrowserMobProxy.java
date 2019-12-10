@@ -1,6 +1,7 @@
 package de.zalando.ep.zalenium.proxylight.service.impl;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -94,7 +95,7 @@ public class BrowserMobProxy implements ProxyLight {
                 proxyUrl = UriComponentsBuilder.newInstance().scheme(HTTP).host(LOCALHOST).port(port).build().toUriString();
                 LOGGER.debug("Browsermob proxy created on port {} and access url {}", port, proxyUrl);
             } else {
-                throw new RuntimeException("Error when creating proxy in browsermob proxy. " + responseCreatedProxy.getBody().toString());
+                throw new RuntimeException("Error when creating proxy in browsermob proxy. " + responseCreatedProxy.toString());
             }
         } catch (RestClientException e) {
             throw new RuntimeException("Error when creating proxy in browsermob proxy.", e);
@@ -145,7 +146,7 @@ public class BrowserMobProxy implements ProxyLight {
 
     private void addCaptureHarWithPageRef(final String pageId, final Integer port) {
         MultiValueMap<String, Object> map = new LinkedMultiValueMap<>();
-        map.add("pageRef", pageId); // TODO Bug on capture pas tout sur les pages suivantes ?
+        map.add("pageRef", pageId);
         putResource(map, uriProxyServer.path(port.toString()).path(HAR_PATH).path(PATH_PAGE_REF).build().toUriString(),
                 "Error when creating pageRef in browsermob proxy.");
     }
@@ -199,6 +200,10 @@ public class BrowserMobProxy implements ProxyLight {
 
         public int getPort() {
             return port;
+        }
+
+        public void setPort(final int port) {
+            this.port = port;
         }
     }
 }

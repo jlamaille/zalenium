@@ -36,6 +36,9 @@ import org.springframework.web.client.RestClientException;
 
 import de.zalando.ep.zalenium.matcher.ZaleniumCapabilityType;
 
+/**
+ * Object allowing the manipulation of the light proxy with a processing of parts specifically related to Selenium.
+ */
 public class SeleniumProxyLight {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SeleniumProxyLight.class.getName());
@@ -52,6 +55,12 @@ public class SeleniumProxyLight {
         return proxyLight;
     }
 
+    /**
+     * Build an element.
+     * @param host : host container
+     * @param port : port container
+     * @param requestedCapabilities : capabilities requested by the test
+     */
     public SeleniumProxyLight(final String host, final Integer port, final Map<String, Object> requestedCapabilities) {
         proxyLight = new BrowserMobProxy(host, port);
         this.requestedCapabilities = requestedCapabilities;
@@ -85,12 +94,16 @@ public class SeleniumProxyLight {
                 }
             }
 
-            if (!proxyCreated) {
-                proxyLight.create();
-            }
+        }
+        if (!proxyCreated) {
+            proxyLight.create();
         }
     }
 
+    /**
+     * Add a reference page to capture traffic related to it.
+     * @param seleniumRequest : The selenium request captured by the hub
+     */
     public void addPageRefCaptureForHar(final SeleniumBasedRequest seleniumRequest) {
         if (proxyLight != null && seleniumRequest != null
                 && StringUtils.isNotEmpty(seleniumRequest.getPathInfo())
