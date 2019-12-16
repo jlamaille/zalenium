@@ -16,7 +16,7 @@ function addTestItem(item) {
     const fileName = buildDirectory.concat(item.videoFileName);
     const seleniumLogFileName = buildDirectory.concat(item.seleniumLogFileName);
     const browserDriverLogFileName = buildDirectory.concat(item.browserDriverLogFileName);
-    const harFileName = item.harsFolderPath.replace("/home/seluser/videos/", "").concat("/").concat(item.harFileName);
+    const harpFileName = item.harpsFolderPath.replace("/home/seluser/videos/", "").concat("/").concat(item.harpFileName);
     const testItem =
         "<a href=\"#\" class=\"list-group-item list-group-item-action flex-column align-items-start p-2\"" +
         " data-video=\"" + fileName + "\"" +
@@ -34,7 +34,7 @@ function addTestItem(item) {
         " data-test-build=\"" + item.build + "\"" +
         " data-selenium-log=\"" + seleniumLogFileName + "\"" +
         " data-browser-driver=\"" + browserDriverLogFileName + "\"" +
-        " data-har-file=\"" + harFileName + "\"" +
+        " data-harp-file=\"" + harpFileName + "\"" +
         " data-retention-date=\"" + item.retentionDate + "\">" +
         "<div class=\"d-flex w-100 justify-content-between\">" +
         "<small class=\"font-weight-bold text-truncate\">" + item.testName + "</small>" +
@@ -157,12 +157,9 @@ function loadLogs($seleniumLogFile, $browserDriverLogFile) {
     }
 }
 
-function loadHar($harFile) {
-    $("#collapseOne").removeClass("show");
-    harviewer = new HarViewer('har-view');
-        $.getJSON($harFile, function(data){
-            harviewer.loadHar(data);
-        })
+function loadHarp($harpFile) {
+   $("#harView").attr("data-har", window.location.href.slice("#", -1) +  $harpFile);
+   harInitialize();
 }
 
 function blockUi() {
@@ -234,7 +231,7 @@ $(document).ready(function() {
         const $retentionDate = $this.data("retention-date");
         const $seleniumLogFile = $this.data("selenium-log");
         const $browserDriverLogFile = $this.data("browser-driver");
-        const $harFile = $this.data("har-file");
+        const $harpFile = $this.data("harp-file");
         const $screenDimension = $this.data("screen-dimension");
         const $timeZone = $this.data("time-zone");
         const $build = $this.data("test-build");
@@ -253,8 +250,8 @@ $(document).ready(function() {
         // Load logs
         loadLogs($seleniumLogFile, $browserDriverLogFile);
 
-        // Load hars
-        loadHar($harFile);
+        // Load harps
+        loadHarp($harpFile);
 
         // Select first tab
         $("#testTabs").find("a:first").tab("show");

@@ -291,7 +291,7 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
             seleniumProxyLight = new SeleniumProxyLight(getRemoteHost().getHost(), 8080, requestedCapability); // TODO param 8080 JLA
             seleniumProxyLight.createSubProxy();
             seleniumProxyLight.addFilterWhiteOrBlackList();
-            seleniumProxyLight.addFilterWhiteOrBlackList();
+            seleniumProxyLight.addHeaders();
 
             if (seleniumProxyLight.getProxyLight() != null) {
                 // Set proxy on browser
@@ -822,7 +822,7 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
             videoRecording(DockerSeleniumContainerAction.STOP_RECORDING);
             processContainerAction(DockerSeleniumContainerAction.TRANSFER_LOGS, getContainerId());
 
-            seleniumProxyLight.saveHar(testInformation);
+            seleniumProxyLight.saveHarp(testInformation);
             ProxyLight proxyLight = seleniumProxyLight.getProxyLight();
             if (proxyLight != null) {
                 proxyLight.delete();

@@ -8,7 +8,7 @@ public interface ProxyLight {
 
     String getProxyUrl();
 
-    String getHarAsJson();
+    String getHarpAsJsonp();
 
     ProxyLight create();
 

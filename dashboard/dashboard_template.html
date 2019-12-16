@@ -10,12 +10,11 @@
         <title>Zalenium - Dashboard</title>
         <link rel="stylesheet" href="css/bootstrap.min.css" />
         <link rel="stylesheet" href="css/dashboard.css" />
-        <link rel="stylesheet" href="css/har-viewer.css" />
         <script src="js/jquery.min.js"></script>
         <script src="js/tether.min.js"></script>
         <script src="js/bootstrap.bundle.min.js"></script>
         <script src="js/dashboard.js"></script>
-        <script src="js/HarViewer.js"></script>
+        <script id="har" src="http://www.softwareishard.com/har/viewer/har.js"></script>
     </head>
 
     <body>
@@ -105,7 +104,7 @@
                                         <a class="nav-link" data-toggle="tab" href="#logs" role="tab">Logs</a>
                                     </li>
                                     <li class="nav-item">
-                                        <a class="nav-link" data-toggle="tab" href="#harView" role="tab">Har</a>
+                                        <a class="nav-link" data-toggle="tab" href="#harViewContent" role="tab">Har</a>
                                     </li>
                                 </ul>
 
@@ -117,8 +116,8 @@
                                             </video>
                                         </div>
                                     </div>
-                                    <div class="tab-pane fade" id="harView" role="tabpanel">
-                                        <div id="har-view"></div>
+                                    <div class="tab-pane fade" id="harViewContent" role="tabpanel">
+                                        <div id="harView" class="har" height="700px" data-har=""></div>
                                     </div>
                                     <div class="tab-pane fade" id="logs" role="tabpanel">
                                         <div id="accordion" role="tablist" aria-multiselectable="true">

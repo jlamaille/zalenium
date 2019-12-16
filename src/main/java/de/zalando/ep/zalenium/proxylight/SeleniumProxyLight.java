@@ -8,25 +8,17 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
 import java.util.TreeMap;
-import java.util.UUID;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import de.zalando.ep.zalenium.dashboard.TestInformation;
 import de.zalando.ep.zalenium.proxylight.service.ProxyLight;
 import de.zalando.ep.zalenium.proxylight.service.impl.BrowserMobProxy;
 import de.zalando.ep.zalenium.util.CommonProxyUtilities;
-import org.apache.commons.collections4.SetUtils;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.bouncycastle.util.Arrays;
 import org.openqa.grid.web.servlet.handler.SeleniumBasedRequest;
 import org.openqa.selenium.Proxy;
 import org.openqa.selenium.remote.CapabilityType;
@@ -57,8 +49,9 @@ public class SeleniumProxyLight {
 
     /**
      * Build an element.
-     * @param host : host container
-     * @param port : port container
+     *
+     * @param host                  : host container
+     * @param port                  : port container
      * @param requestedCapabilities : capabilities requested by the test
      */
     public SeleniumProxyLight(final String host, final Integer port, final Map<String, Object> requestedCapabilities) {
@@ -102,6 +95,7 @@ public class SeleniumProxyLight {
 
     /**
      * Add a reference page to capture traffic related to it.
+     *
      * @param seleniumRequest : The selenium request captured by the hub
      */
     public void addPageRefCaptureForHar(final SeleniumBasedRequest seleniumRequest) {
@@ -124,13 +118,18 @@ public class SeleniumProxyLight {
      */
     public void addFilterWhiteOrBlackList() {
         if (proxyLight != null) {
-            requestedCapabilities.entrySet().stream().filter(capability -> capability.getKey().equals(ZaleniumCapabilityType.BROWSERMOBPROXY_WHITE_LIST) || capability.getKey().equals(ZaleniumCapabilityType.BROWSERMOBPROXY_BLACK_LIST)).forEach(capability -> {
-                FilterUrlType filterUrlType = capability.getKey().equals(ZaleniumCapabilityType.BROWSERMOBPROXY_WHITE_LIST) ? FilterUrlType.WHITELIST : FilterUrlType.BLACKLIST;
-                String regex = String.valueOf(capability.getValue());
-                LOGGER.debug("Adding {} '{}' on light proxy", filterUrlType.name(), regex);
-                proxyLight.addBlackOrWhiteList(filterUrlType, regex);
+            requestedCapabilities.entrySet().stream().filter(capability ->
+                    capability.getKey().equals(ZaleniumCapabilityType.BROWSERMOBPROXY_WHITE_LIST) ||
+                            capability.getKey().equals(ZaleniumCapabilityType.BROWSERMOBPROXY_BLACK_LIST))
+                    .forEach(capFilter -> {
+                        FilterUrlType filterUrlType = capFilter.getKey()
+                                .equals(ZaleniumCapabilityType.BROWSERMOBPROXY_WHITE_LIST)
+                                ? FilterUrlType.WHITELIST : FilterUrlType.BLACKLIST;
+                        String regex = String.valueOf(capFilter.getValue());
+                        LOGGER.debug("Adding {} '{}' on light proxy", filterUrlType.name(), regex);
+                        proxyLight.addBlackOrWhiteList(filterUrlType, regex);
 
-            });
+                    });
         }
     }
 
@@ -155,24 +154,24 @@ public class SeleniumProxyLight {
     }
 
     /**
-     * Save HAR File for current test in after session.
+     * Save HARP File for current test in after session.
      */
-    public void saveHar(final TestInformation testInformation) {
+    public void saveHarp(final TestInformation testInformation) {
         if (testInformation != null
-                && StringUtils.isNotEmpty(testInformation.getHarsFolderPath())
+                && StringUtils.isNotEmpty(testInformation.getHarpsFolderPath())
                 && proxyLight != null) {
             try {
-                if (!Files.exists(Paths.get(testInformation.getHarsFolderPath()))) { // TODO Mutualisation ?
-                    Path directories = Files.createDirectories(Paths.get(testInformation.getHarsFolderPath()));
+                if (!Files.exists(Paths.get(testInformation.getHarpsFolderPath()))) { // TODO Mutualisation ?
+                    Path directories = Files.createDirectories(Paths.get(testInformation.getHarpsFolderPath()));
                     CommonProxyUtilities.setFilePermissions(directories);
                     CommonProxyUtilities.setFilePermissions(directories.getParent());
                 }
-                String har = proxyLight.getHarAsJson();
-                if (StringUtils.isNotEmpty(har)) {
-                    String fileName = String.format("%s/%s", testInformation.getHarsFolderPath(), testInformation.getHarFileName());
-                    FileUtils.writeStringToFile(new File(fileName), har, StandardCharsets.UTF_8);
-                    Path harFile = Paths.get(fileName);
-                    CommonProxyUtilities.setFilePermissions(harFile);
+                String harp = proxyLight.getHarpAsJsonp();
+                if (StringUtils.isNotEmpty(harp)) {
+                    String fileName = String.format("%s/%s", testInformation.getHarpsFolderPath(), testInformation.getHarpFileName());
+                    FileUtils.writeStringToFile(new File(fileName), harp, StandardCharsets.UTF_8);
+                    Path harpFile = Paths.get(fileName);
+                    CommonProxyUtilities.setFilePermissions(harpFile);
                 }
             } catch (RestClientException | IOException e) {
                 throw new RuntimeException("Error when getting HAR in proxy.", e);

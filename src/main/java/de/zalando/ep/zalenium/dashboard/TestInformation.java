@@ -3,7 +3,6 @@ package de.zalando.ep.zalenium.dashboard;
 import com.google.common.base.Strings;
 import com.google.gson.JsonObject;
 
-import de.zalando.ep.zalenium.proxy.DockerSeleniumRemoteProxy;
 import de.zalando.ep.zalenium.proxy.RemoteLogFile;
 import de.zalando.ep.zalenium.util.CommonProxyUtilities;
 import org.apache.commons.lang3.StringUtils;
@@ -35,6 +34,8 @@ public class TestInformation {
 
     private static final String LAMBDA_TEST_PROXY_NAME = "LambdaTest";
 
+    public static final String HARP_EXTENSION = ".harp";
+
     private static final CommonProxyUtilities commonProxyUtilities = new CommonProxyUtilities();
 
     private String seleniumSessionId;
@@ -61,7 +62,7 @@ public class TestInformation {
 
     private String videoUrl;
 
-    private String harFileName;
+    private String harpFileName;
 
     private List<String> logUrls;
 
@@ -94,7 +95,7 @@ public class TestInformation {
 
     private JsonObject metadata;
 
-    private String harsFolderPath;
+    private String harpsFolderPath;
 
     private String buildName;
 
@@ -176,9 +177,9 @@ public class TestInformation {
 
     public String getBuild() { return build; }
 
-    public String getHarsFolderPath() { return harsFolderPath; }
+    public String getHarpsFolderPath() { return harpsFolderPath; }
 
-    public String getHarFileName() { return harFileName; }
+    public String getHarpFileName() { return harpFileName; }
 
     public String getSeleniumLogFileName() { return seleniumLogFileName; }
 
@@ -329,9 +330,9 @@ public class TestInformation {
         buildTestNameNoExtension();
         buildSeleniumLogFileName();
         buildBrowserDriverLogFileName();
-        this.harFileName = FILE_NAME_TEMPLATE.replace("{fileName}", testNameNoExtension)
-                .replace("{fileExtension}", ".har");
-        this.harsFolderPath = commonProxyUtilities.currentLocalPath() + "/" + Dashboard.VIDEOS_FOLDER_NAME +
+        this.harpFileName = FILE_NAME_TEMPLATE.replace("{fileName}", testNameNoExtension)
+                .replace("{fileExtension}", HARP_EXTENSION);
+        this.harpsFolderPath = commonProxyUtilities.currentLocalPath() + "/" + Dashboard.VIDEOS_FOLDER_NAME +
                 buildName + "/" + Dashboard.HARS_FOLDER_NAME;
         buildVideoFileName();
     }

@@ -1,29 +1,28 @@
 package de.zalando.ep.zalenium.proxylight;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.TreeMap;
-
-import jnr.ffi.StructLayout;
-import org.apache.commons.lang3.StringUtils;
+import de.zalando.ep.zalenium.proxylight.service.impl.BrowserMobProxy;
 import org.hamcrest.Matchers;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Mockito;
-import org.mockito.verification.VerificationMode;
 import org.openqa.selenium.Platform;
 import org.openqa.selenium.Proxy;
 import org.openqa.selenium.remote.BrowserType;
 import org.openqa.selenium.remote.CapabilityType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
-import de.zalando.ep.zalenium.proxylight.service.impl.BrowserMobProxy;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.TreeMap;
+
+import static de.zalando.ep.zalenium.proxylight.service.impl.BrowserMobProxy.BMProxy;
+import static org.hamcrest.Matchers.*;
+import static org.mockito.Mockito.*;
+import static org.springframework.http.ResponseEntity.badRequest;
+import static org.springframework.http.ResponseEntity.ok;
 
 public class SeleniumProxyLightTest {
 
@@ -60,9 +59,9 @@ public class SeleniumProxyLightTest {
     public void testDeleteSeleniumProxyLight() {
         RestTemplate mockRestTemplate = getMockRestTemplateWithSimulateCreateBmp("http://localhost:80/proxy");
         SeleniumProxyLight seleniumProxyLight = createSeleniumProxyLightWithMock(mockRestTemplate, capabilitySupportedByDockerSelenium);
+        doNothing().when(mockRestTemplate).delete("http://localhost:80/proxy/8001");
         seleniumProxyLight.getProxyLight().delete();
-//        restTemplate.delete(uriProxyServer.path(port.toString()).build().toUriString());
-
+        verify(mockRestTemplate).delete("http://localhost:80/proxy/8001");
     }
 
     @Test
@@ -70,20 +69,21 @@ public class SeleniumProxyLightTest {
         RestTemplate mockRestTemplate = getMockRestTemplateWithSimulateCreateBmp("http://localhost:80/proxy");
 
         TreeMap tp = new TreeMap();
-        tp.put("httpProxy", new Integer(1));
-        tp.put("proxyType", new Integer(1));
+        Integer one = new Integer(1);
+        tp.put("httpProxy", one);
+        tp.put("proxyType", one);
         capabilitySupportedByDockerSelenium.put(CapabilityType.PROXY, tp);
         thrown.expect(RuntimeException.class);
-        thrown.expectMessage(Matchers.is("Error when getting proxyType or httpProxy in proxy : {httpProxy=1, proxyType=1}. Type required 'String'."));
+        thrown.expectMessage(is("Error when getting proxyType or httpProxy in proxy : {httpProxy=1, proxyType=1}. Type required 'String'."));
         SeleniumProxyLight seleniumProxyLight = createSeleniumProxyLightWithMock(mockRestTemplate, capabilitySupportedByDockerSelenium);
     }
 
     @Test
     public void testCreateSeleniumProxyLightWithServerErrorBadRequest() {
         // Create mock Rest Template to simulate interaction with bmp server
-        RestTemplate mockRestTemplate = Mockito.mock(RestTemplate.class);
-        Mockito.when(mockRestTemplate.postForEntity("http://localhost:80/proxy",
-                null, BrowserMobProxy.BMProxy.class)).thenReturn(ResponseEntity.badRequest().build());
+        RestTemplate mockRestTemplate = mock(RestTemplate.class);
+        when(mockRestTemplate.postForEntity("http://localhost:80/proxy",
+                null, BMProxy.class)).thenReturn(badRequest().build());
 
         thrown.expect(RuntimeException.class);
         thrown.expectMessage(Matchers.startsWith("Error when creating proxy in browsermob proxy."));
@@ -93,25 +93,25 @@ public class SeleniumProxyLightTest {
     @Test
     public void testCreateSeleniumProxyLightWithServerRestError() {
         // Create mock Rest Template to simulate interaction with bmp server
-        RestTemplate mockRestTemplate = Mockito.mock(RestTemplate.class);
+        RestTemplate mockRestTemplate = mock(RestTemplate.class);
         RestClientException restError = new RestClientException("Rest Error");
-        Mockito.when(mockRestTemplate.postForEntity("http://localhost:80/proxy",
-                null, BrowserMobProxy.BMProxy.class)).thenThrow(restError);
+        when(mockRestTemplate.postForEntity("http://localhost:80/proxy",
+                null, BMProxy.class)).thenThrow(restError);
 
         thrown.expect(RuntimeException.class);
-        thrown.expectMessage(Matchers.is("Error when creating proxy in browsermob proxy."));
-        thrown.expectCause(Matchers.is(restError));
+        thrown.expectMessage(is("Error when creating proxy in browsermob proxy."));
+        thrown.expectCause(is(restError));
         SeleniumProxyLight seleniumProxyLight = createSeleniumProxyLightWithMock(mockRestTemplate, capabilitySupportedByDockerSelenium);
     }
 
     private void callCreateBmpAndCheckResult(RestTemplate mockRestTemplate, Map<String, Object> capabilitySupportedByDockerSelenium, String s) {
         SeleniumProxyLight seleniumProxyLight = createSeleniumProxyLightWithMock(mockRestTemplate, capabilitySupportedByDockerSelenium);
 
-        Mockito.verify(mockRestTemplate).postForEntity(s,
-                null, BrowserMobProxy.BMProxy.class);
+        verify(mockRestTemplate).postForEntity(s,
+                null, BMProxy.class);
 
-        Assert.assertThat(seleniumProxyLight.getProxyLight(), Matchers.notNullValue());
-        Assert.assertThat(seleniumProxyLight.getProxyLight().getProxyUrl(), Matchers.equalTo("http://127.0.0.1:8001"));
+        Assert.assertThat(seleniumProxyLight.getProxyLight(), notNullValue());
+        Assert.assertThat(seleniumProxyLight.getProxyLight().getProxyUrl(), equalTo("http://127.0.0.1:8001"));
     }
 
     private SeleniumProxyLight createSeleniumProxyLightWithMock(RestTemplate mockRestTemplate, Map<String, Object> capabilitySupportedByDockerSelenium) {
@@ -123,11 +123,11 @@ public class SeleniumProxyLightTest {
 
     private RestTemplate getMockRestTemplateWithSimulateCreateBmp(String s) {
         // Create mock Rest Template to simulate interaction with bmp server
-        RestTemplate mockRestTemplate = Mockito.mock(RestTemplate.class);
-        BrowserMobProxy.BMProxy bmProxy = new BrowserMobProxy.BMProxy();
+        RestTemplate mockRestTemplate = mock(RestTemplate.class);
+        BMProxy bmProxy = new BMProxy();
         bmProxy.setPort(8001);
-        Mockito.when(mockRestTemplate.postForEntity(s,
-                null, BrowserMobProxy.BMProxy.class)).thenReturn(ResponseEntity.ok().body(bmProxy));
+        when(mockRestTemplate.postForEntity(s,
+                null, BMProxy.class)).thenReturn(ok().body(bmProxy));
         return mockRestTemplate;
     }
 
