@@ -1,11 +1,12 @@
-package de.zalando.ep.zalenium.proxylight.service.impl;
+package de.zalando.ep.zalenium.lightproxy.service.impl;
 
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 import com.google.common.annotations.VisibleForTesting;
-import de.zalando.ep.zalenium.proxylight.FilterUrlType;
+import de.zalando.ep.zalenium.lightproxy.UrlTypeFilter;
+import org.apache.commons.collections4.SetUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpEntity;
@@ -19,11 +20,17 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import de.zalando.ep.zalenium.proxylight.service.ProxyLight;
+import de.zalando.ep.zalenium.lightproxy.service.LightProxy;
 
-public class BrowserMobProxy implements ProxyLight {
+public class BrowserMobProxy implements LightProxy {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(BrowserMobProxy.class.getName());
+
+    private static final Set<String> DEFAULT_CAPTURE_SETTINGS = SetUtils.hashSet(
+            "captureHeaders",
+            "captureCookies",
+            "captureContent",
+            "captureBinaryContent");
 
     private static final String HTTP = "http";
     private static final String PROXY_PATH = "/proxy";
@@ -33,6 +40,7 @@ public class BrowserMobProxy implements ProxyLight {
     private static final String BLACKLIST_PATH = "/blacklist";
     private static final String HEADERS_PATH = "/headers";
     public static final String LOCALHOST = "127.0.0.1";
+    public static final String ON_INPUT_DATA_S = "onInputData(%s);";
 
 
     // Object to manipulate Rest Service
@@ -40,7 +48,9 @@ public class BrowserMobProxy implements ProxyLight {
 
     private UriComponentsBuilder uriProxyServer;
 
-    /** Sub proxy port for test. */
+    /**
+     * Sub proxy port for test.
+     */
     private Integer port;
 
     private String proxyUrl;
@@ -63,24 +73,26 @@ public class BrowserMobProxy implements ProxyLight {
     }
 
     @Override
-    public String getHarpAsJsonp() {
+    public String getHarpAsJsonP() {
         LOGGER.debug("Getting HAR in browsermob proxy on port {}", port.toString());
         try {
-            return Optional.ofNullable(String.format("onInputData(%s);",restTemplate.getForEntity(
+            String harJson = Optional.ofNullable(restTemplate.getForEntity(
                     UriComponentsBuilder.fromUri(this.uriSubProxyServer.build().toUri()).path(HAR_PATH).build().toUriString(),
-                    String.class).getBody())).orElse("No Har file found for this test execution"); // TODO On a pas fait de capture page ?!
+                    String.class).getBody()).orElse(StringUtils.EMPTY);
+            return StringUtils.isNotEmpty(harJson) ? String.format(ON_INPUT_DATA_S,
+                    harJson) : harJson;
         } catch (RestClientException e) {
-            throw new RuntimeException("Error when get HAR in browsermob proxy. " + e.getLocalizedMessage());
+            throw new RuntimeException("Error when get HAR in browsermob proxy. " + e.getLocalizedMessage(), e);
         }
     }
 
     @Override
-    public ProxyLight create() {
+    public LightProxy create() {
         return create(StringUtils.EMPTY);
     }
 
     @Override
-    public ProxyLight create(final String subProxy) {
+    public LightProxy create(final String subProxy) {
         try {
             UriComponentsBuilder uriComponentsBuilderCreateProxy = UriComponentsBuilder.fromUri(uriProxyServer.build().toUri());
             if (StringUtils.isNotEmpty(subProxy)) {
@@ -100,79 +112,73 @@ public class BrowserMobProxy implements ProxyLight {
                 throw new RuntimeException("Error when creating proxy in browsermob proxy. " + responseCreatedProxy.toString());
             }
         } catch (RestClientException e) {
-            throw new RuntimeException("Error when creating proxy in browsermob proxy.", e);
+            throw new RuntimeException("Error when creating proxy in browsermob proxy. " + e.getLocalizedMessage(), e);
         }
 
         return this;
     }
 
     @Override
-    public ProxyLight delete() {
+    public LightProxy delete() {
         LOGGER.debug("Deleting Browsermob proxy on port {}.", port);
         try {
             restTemplate.delete(uriSubProxyServer.build().toUriString());
         } catch (RestClientException e) {
-            throw new RuntimeException("Error when deleting proxy [port : " + port.toString() + "] in browsermob proxy.", e);
+            throw new RuntimeException("Error when deleting proxy [port : " + port.toString() + "] in browsermob proxy. " + e.getLocalizedMessage(), e);
         }
         return this;
     }
 
     @Override
-    public ProxyLight addOverridedHeaders(final Map<String, Object> overridedHeaders) {
+    public void addOverriddenHeaders(final Map<String, Object> overriddenHeaders) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        HttpEntity<Map<String, Object>> requestAddHeaders = new HttpEntity<>(overridedHeaders, headers);
+        HttpEntity<Map<String, Object>> requestAddHeaders = new HttpEntity<>(overriddenHeaders, headers);
         try {
             restTemplate.postForObject(
                     UriComponentsBuilder.fromUri(this.uriSubProxyServer.build().toUri()).path(HEADERS_PATH).build().toUriString(), requestAddHeaders, String.class);
         } catch (RestClientException e) {
-            throw new RuntimeException("Error when adding headers in browsermob proxy.", e);
+            throw new RuntimeException("Error when adding headers in browsermob proxy. " + e.getLocalizedMessage(), e);
         }
-        return this;
     }
 
     @Override
-    public ProxyLight addCapturePage(final String pageId) {
+    public void addCapturePage(final String pageId, final MultiValueMap<String, Object> overriddenCaptureSetting) {
         // If HAR not created
-        String har = getHarpAsJsonp();
-        if (StringUtils.isNotEmpty(har)) {
+        String har = getHarpAsJsonP();
+        if (StringUtils.isEmpty(har)) {
             // Create HAR with pageRef
-            LOGGER.debug("Adding HAR capture with initial pageRef {} in browsermob proxy on port {}", pageId, port);
-            addCaptureHarWithInitPageRef(pageId, port);
+            MultiValueMap<String, Object> captureSettings = getCaptureSettings(pageId, overriddenCaptureSetting, "initialPageRef");
+            LOGGER.debug("Adding HAR capture with initial pageRef {} with settings {} in browsermob proxy on port {}", pageId, ToStringBuilder.reflectionToString(captureSettings), port);
+            putResource(captureSettings, UriComponentsBuilder.fromUri(this.uriSubProxyServer.build().toUri()).path(HAR_PATH).build().toUriString(),
+                    "Error when adding HAR capture in browsermob proxy.");
         } else {
-            LOGGER.debug("Adding HAR capture with pageRef {} in browsermob proxy on port {}", pageId, port);
-            addCaptureHarWithPageRef(pageId, port);
+            MultiValueMap<String, Object> captureSettings = getCaptureSettings(pageId, overriddenCaptureSetting, "pageRef");
+            LOGGER.debug("Adding HAR capture with pageRef {} with settings {} in browsermob proxy on port {}", pageId, ToStringBuilder.reflectionToString(captureSettings), port);
+            putResource(captureSettings, UriComponentsBuilder.fromUri(this.uriSubProxyServer.build().toUri()).path(HAR_PATH).path(PAGE_REF_PATH).build().toUriString(),
+                    "Error when creating pageRef in browsermob proxy.");
         }
-        return this;
     }
 
-    private void addCaptureHarWithPageRef(final String pageId, final Integer port) {
-        MultiValueMap<String, Object> map = new LinkedMultiValueMap<>();
-        map.add("pageRef", pageId);
-        putResource(map,  UriComponentsBuilder.fromUri(this.uriSubProxyServer.build().toUri()).path(HAR_PATH).path(PAGE_REF_PATH).build().toUriString(),
-                "Error when creating pageRef in browsermob proxy.");
-    }
-
-    private void addCaptureHarWithInitPageRef(final String pageId, final Integer port) {
-            //, final  MultiValueMap<String, Object> captureSettingsOverrided) {
-        MultiValueMap<String, Object> map = new LinkedMultiValueMap<>() ;
-        map.add("initialPageRef", pageId); // TODO paramétrable ou pas ? méthode
-        map.add("captureHeaders", true);
-        map.add("captureCookies", true);
-//        map.add("captureContent", true);
-//        map.add("captureBinaryContent", true);
-        putResource(map,  UriComponentsBuilder.fromUri(this.uriSubProxyServer.build().toUri()).path(HAR_PATH).build().toUriString(),
-                "Error when adding HAR capture in browsermob proxy.");
+    /**
+     * Mapped Proxy with Browser Mob Proxy server.
+     */
+    private MultiValueMap<String, Object> getCaptureSettings(String pageId, MultiValueMap<String, Object> overriddenCaptureSetting, String pageType) {
+        MultiValueMap<String, Object> captureSettings = Optional.ofNullable(overriddenCaptureSetting).orElse(new LinkedMultiValueMap<>());
+        captureSettings.add(pageType, pageId);
+        DEFAULT_CAPTURE_SETTINGS.stream().forEach(s -> {
+            captureSettings.putIfAbsent(s, Collections.singletonList(Boolean.TRUE));
+        });
+        return captureSettings;
     }
 
     @Override
-    public ProxyLight addBlackOrWhiteList(final FilterUrlType filterUrlType, final String regexPaternFilter) {
+    public void addBlackOrWhiteList(final UrlTypeFilter urlTypeFilter, final String regexPaternFilter) {
         MultiValueMap<String, Object> map = new LinkedMultiValueMap<>();
         map.add("regex", regexPaternFilter);
-        putResource(map,  UriComponentsBuilder.fromUri(this.uriSubProxyServer.build().toUri()).path(filterUrlType.equals(FilterUrlType.BLACKLIST) ? BLACKLIST_PATH : WHITELIST_PATH).
+        putResource(map, UriComponentsBuilder.fromUri(this.uriSubProxyServer.build().toUri()).path(urlTypeFilter.equals(UrlTypeFilter.BLACKLIST) ? BLACKLIST_PATH : WHITELIST_PATH).
                         build().toUriString(),
                 "Error when adding black/white list in browsermob proxy.");
-        return this;
     }
 
     /**
@@ -190,14 +196,11 @@ public class BrowserMobProxy implements ProxyLight {
         try {
             restTemplate.put(url, requestCreateHar);
         } catch (RestClientException e) {
-            throw new RuntimeException(String.format("%s.", errorMessage), e);
+            throw new RuntimeException(String.format("%s. %s", errorMessage, e.getLocalizedMessage()), e);
         }
     }
-
-    /**
-     * Mapped Proxy with Browser Mob Proxy server.
-     */
     public static class BMProxy {
+
 
         private int port;
 

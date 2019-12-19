@@ -15,8 +15,8 @@ import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import de.zalando.ep.zalenium.proxylight.SeleniumProxyLight;
-import de.zalando.ep.zalenium.proxylight.service.ProxyLight;
+import de.zalando.ep.zalenium.lightproxy.SeleniumLightProxy;
+import de.zalando.ep.zalenium.lightproxy.service.LightProxy;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.lang3.StringUtils;
@@ -130,7 +130,7 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
 
     private TestInformation testInformation;
 
-    private SeleniumProxyLight seleniumProxyLight; // TODO Proxy Light
+    private SeleniumLightProxy seleniumLightProxy; // TODO Proxy Light
 
     private GoogleAnalyticsApi ga = new GoogleAnalyticsApi();
 
@@ -288,15 +288,15 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
                 && getRemoteHost() != null
                 && StringUtils.isNotEmpty(getRemoteHost().getHost())) {
             // TODO JLA on ne va pas recréer un objet a chaque fois ? donc à revoir mais on a pas d'injection en spring de service
-            seleniumProxyLight = new SeleniumProxyLight(getRemoteHost().getHost(), 8080, requestedCapability); // TODO param 8080 JLA
-            seleniumProxyLight.createSubProxy();
-            seleniumProxyLight.addFilterWhiteOrBlackList();
-            seleniumProxyLight.addHeaders();
+            seleniumLightProxy = new SeleniumLightProxy(getRemoteHost().getHost(), 8080, requestedCapability); // TODO param 8080 JLA
+            seleniumLightProxy.createSubProxy();
+            seleniumLightProxy.addFilterWhiteOrBlackList();
+            seleniumLightProxy.addHeaders();
 
-            if (seleniumProxyLight.getProxyLight() != null) {
+            if (seleniumLightProxy.getLightProxy() != null) {
                 // Set proxy on browser
                 Proxy seleniumProxy = new Proxy();
-                seleniumProxy.setHttpProxy(seleniumProxyLight.getProxyLight().getProxyUrl());
+                seleniumProxy.setHttpProxy(seleniumLightProxy.getLightProxy().getProxyUrl());
                 seleniumProxy.setSslProxy(seleniumProxy.getHttpProxy());
                 seleniumProxy.setProxyType(Proxy.ProxyType.MANUAL);
                 requestedCapability.put(CapabilityType.PROXY, seleniumProxy);
@@ -387,8 +387,8 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
             WebDriverRequest seleniumRequest = (WebDriverRequest) request;
 
             // Add pageRef if current command is get url
-            if (seleniumProxyLight != null) {
-                seleniumProxyLight.addPageRefCaptureForHar(seleniumRequest);
+            if (seleniumLightProxy != null) {
+                seleniumLightProxy.addPageRefCaptureForHar(seleniumRequest);
             }
 
             try {
@@ -822,8 +822,8 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
             videoRecording(DockerSeleniumContainerAction.STOP_RECORDING);
             processContainerAction(DockerSeleniumContainerAction.TRANSFER_LOGS, getContainerId());
 
-            seleniumProxyLight.saveHarp(testInformation);
-            ProxyLight proxyLight = seleniumProxyLight.getProxyLight();
+            seleniumLightProxy.saveHarp(testInformation);
+            LightProxy proxyLight = seleniumLightProxy.getLightProxy();
             if (proxyLight != null) {
                 proxyLight.delete();
             }

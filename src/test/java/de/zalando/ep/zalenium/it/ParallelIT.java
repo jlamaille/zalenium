@@ -4,10 +4,8 @@ import de.zalando.ep.zalenium.matcher.ZaleniumCapabilityType;
 import org.openqa.selenium.Platform;
 import org.openqa.selenium.Proxy;
 import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.net.NetworkUtils;
 import org.openqa.selenium.remote.BrowserType;
-import org.openqa.selenium.remote.CapabilityType;
 import org.openqa.selenium.remote.DesiredCapabilities;
 import org.openqa.selenium.remote.RemoteWebDriver;
 import org.slf4j.Logger;
@@ -137,9 +135,9 @@ public class ParallelIT {
         overridedHeaders.put("jla-mock", "juju");
         overridedHeaders.put("User-Agent", "BrowserMob-Agent");
 //        overridedHeaders.put("X-PJ-MOCK", "true");
-        desiredCapabilities.setCapability(ZaleniumCapabilityType.BROWSERMOBPROXY_HEADERS, overridedHeaders);
+//        desiredCapabilities.setCapability(ZaleniumCapabilityType.BROWSERMOBPROXY_HEADERS, overridedHeaders);
 
-        desiredCapabilities.setCapability(ZaleniumCapabilityType.BROWSERMOBPROXY_BLACK_LIST, ".*(mappy|gstatic|accengage|kameleoon|xiti|gigya).*");
+        desiredCapabilities.setCapability(ZaleniumCapabilityType.LIGHT_PROXY_BLACK_LIST, ".*(mappy|gstatic|accengage|kameleoon|xiti|gigya).*");
 
         LOGGER.info("Integration to test: {}", System.getProperty("integrationToTest"));
         LOGGER.info("STARTING {}", desiredCapabilities.toString());
@@ -178,7 +176,7 @@ public class ParallelIT {
 //        getWebDriver().get("http://www.cd.pagesjaunes.fr");
         getWebDriver().get("http://www.pagesjaunes.fr");
 //
-//        getWebDriver().get("http://www.cdiscount.fr");
+        getWebDriver().get("http://www.cdiscount.fr");
 
 //        getWebDriver().get("https://www.pagesjaunes.fr/annuaire/chercherlespros?quoiqui=resto&ou=rennes&proximite=0");
 

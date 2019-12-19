@@ -1,4 +1,4 @@
-package de.zalando.ep.zalenium.proxylight;
+package de.zalando.ep.zalenium.lightproxy;
 
 import java.io.File;
 import java.io.IOException;
@@ -6,16 +6,13 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import de.zalando.ep.zalenium.dashboard.TestInformation;
-import de.zalando.ep.zalenium.proxylight.service.ProxyLight;
-import de.zalando.ep.zalenium.proxylight.service.impl.BrowserMobProxy;
+import de.zalando.ep.zalenium.lightproxy.service.LightProxy;
+import de.zalando.ep.zalenium.lightproxy.service.impl.BrowserMobProxy;
 import de.zalando.ep.zalenium.util.CommonProxyUtilities;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -24,6 +21,7 @@ import org.openqa.selenium.Proxy;
 import org.openqa.selenium.remote.CapabilityType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClientException;
 
 import de.zalando.ep.zalenium.matcher.ZaleniumCapabilityType;
@@ -31,20 +29,20 @@ import de.zalando.ep.zalenium.matcher.ZaleniumCapabilityType;
 /**
  * Object allowing the manipulation of the light proxy with a processing of parts specifically related to Selenium.
  */
-public class SeleniumProxyLight {
+public class SeleniumLightProxy {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(SeleniumProxyLight.class.getName());
+    private static final Logger LOGGER = LoggerFactory.getLogger(SeleniumLightProxy.class.getName());
 
     public static final String PROXY_TYPE = "proxyType";
 
     public static final String HTTP_PROXY = "httpProxy";
 
-    private ProxyLight proxyLight;
+    private LightProxy lightProxy;
 
     private Map<String, Object> requestedCapabilities;
 
-    public ProxyLight getProxyLight() {
-        return proxyLight;
+    public LightProxy getLightProxy() {
+        return lightProxy;
     }
 
     /**
@@ -54,8 +52,8 @@ public class SeleniumProxyLight {
      * @param port                  : port container
      * @param requestedCapabilities : capabilities requested by the test
      */
-    public SeleniumProxyLight(final String host, final Integer port, final Map<String, Object> requestedCapabilities) {
-        proxyLight = new BrowserMobProxy(host, port);
+    public SeleniumLightProxy(final String host, final Integer port, final Map<String, Object> requestedCapabilities) {
+        lightProxy = new BrowserMobProxy(host, port);
         this.requestedCapabilities = requestedCapabilities;
     }
 
@@ -82,14 +80,14 @@ public class SeleniumProxyLight {
                 }
                 if (proxyType.equalsIgnoreCase(String.valueOf(Proxy.ProxyType.MANUAL)) && StringUtils.isNotEmpty(httpProxy)) {
                     LOGGER.debug("Request capability contains proxy {}.", proxy.toString());
-                    proxyLight.create(httpProxy);
+                    lightProxy.create(httpProxy);
                     proxyCreated = true;
                 }
             }
 
         }
         if (!proxyCreated) {
-            proxyLight.create();
+            lightProxy.create();
         }
     }
 
@@ -99,7 +97,12 @@ public class SeleniumProxyLight {
      * @param seleniumRequest : The selenium request captured by the hub
      */
     public void addPageRefCaptureForHar(final SeleniumBasedRequest seleniumRequest) {
-        if (proxyLight != null && seleniumRequest != null
+        if (lightProxy != null
+                && (!requestedCapabilities.containsKey(ZaleniumCapabilityType.LIGHT_PROXY_CAPTURE_HAR) ||
+                    Boolean.parseBoolean(Optional.ofNullable(
+                            requestedCapabilities.get(ZaleniumCapabilityType.LIGHT_PROXY_CAPTURE_HAR)).
+                            orElse("true").toString()))
+                && seleniumRequest != null
                 && StringUtils.isNotEmpty(seleniumRequest.getPathInfo())
                 && seleniumRequest.getPathInfo().endsWith("url")
                 && StringUtils.isNotEmpty(seleniumRequest.getBody())) {
@@ -107,7 +110,10 @@ public class SeleniumProxyLight {
             if (bodyRequest != null && bodyRequest.getAsJsonObject() != null) {
                 JsonElement urlObject = bodyRequest.getAsJsonObject().get("url");
                 if (urlObject != null) {
-                    proxyLight.addCapturePage(urlObject.getAsString());
+                    LOGGER.debug("Adding capture with har file for url {}", urlObject.getAsString());
+                    Object browserCaptureSettings = requestedCapabilities.get(ZaleniumCapabilityType.LIGHT_PROXY_CAPTURE_HAR_SETTINGS);
+                    lightProxy.addCapturePage(urlObject.getAsString(),
+                            browserCaptureSettings != null ? (MultiValueMap<String, Object>) browserCaptureSettings : null);
                 }
             }
         }
@@ -117,17 +123,17 @@ public class SeleniumProxyLight {
      * If needed, add filters in sub proxy for each browser's request.
      */
     public void addFilterWhiteOrBlackList() {
-        if (proxyLight != null) {
+        if (lightProxy != null) {
             requestedCapabilities.entrySet().stream().filter(capability ->
-                    capability.getKey().equals(ZaleniumCapabilityType.BROWSERMOBPROXY_WHITE_LIST) ||
-                            capability.getKey().equals(ZaleniumCapabilityType.BROWSERMOBPROXY_BLACK_LIST))
+                    capability.getKey().equals(ZaleniumCapabilityType.LIGHT_PROXY_WHITE_LIST) ||
+                            capability.getKey().equals(ZaleniumCapabilityType.LIGHT_PROXY_BLACK_LIST))
                     .forEach(capFilter -> {
-                        FilterUrlType filterUrlType = capFilter.getKey()
-                                .equals(ZaleniumCapabilityType.BROWSERMOBPROXY_WHITE_LIST)
-                                ? FilterUrlType.WHITELIST : FilterUrlType.BLACKLIST;
+                        UrlTypeFilter urlTypeFilter = capFilter.getKey()
+                                .equals(ZaleniumCapabilityType.LIGHT_PROXY_WHITE_LIST)
+                                ? UrlTypeFilter.WHITELIST : UrlTypeFilter.BLACKLIST;
                         String regex = String.valueOf(capFilter.getValue());
-                        LOGGER.debug("Adding {} '{}' on light proxy", filterUrlType.name(), regex);
-                        proxyLight.addBlackOrWhiteList(filterUrlType, regex);
+                        LOGGER.debug("Adding {} '{}' on light proxy", urlTypeFilter.name(), regex);
+                        lightProxy.addBlackOrWhiteList(urlTypeFilter, regex);
 
                     });
         }
@@ -137,18 +143,18 @@ public class SeleniumProxyLight {
      * If needed, add headers in sub proxy for each browser's request.
      */
     public void addHeaders() {
-        if (proxyLight != null) {
-            requestedCapabilities.entrySet().stream().filter(capability -> capability.getKey().equals(ZaleniumCapabilityType.BROWSERMOBPROXY_HEADERS))
+        if (lightProxy != null) {
+            requestedCapabilities.entrySet().stream().filter(capability -> capability.getKey().equals(ZaleniumCapabilityType.LIGHT_PROXY_HEADERS))
                     .findFirst()
                     .ifPresent(capability -> {
-                        Map<String, Object> overridedHeaders;
+                        Map<String, Object> overriddenHeaders;
                         try {
-                            overridedHeaders = (HashMap<String, Object>) capability.getValue();
+                            overriddenHeaders = (Map<String, Object>) capability.getValue();
                         } catch (ClassCastException e) {
-                            throw new RuntimeException("Error when getting capabilities " + capability.getValue() + ". Type required 'HashMap<String, Object>'.", e);
+                            throw new RuntimeException("Error when getting capabilities " + capability.getValue() + ". Type required 'Map<String, Object>'.", e);
                         }
-                        LOGGER.debug("Adding headers '{}'", Collections.unmodifiableMap(overridedHeaders));
-                        proxyLight.addOverridedHeaders(overridedHeaders);
+                        LOGGER.debug("Adding headers '{}'", Collections.unmodifiableMap(overriddenHeaders));
+                        lightProxy.addOverriddenHeaders(overriddenHeaders);
                     });
         }
     }
@@ -159,14 +165,14 @@ public class SeleniumProxyLight {
     public void saveHarp(final TestInformation testInformation) {
         if (testInformation != null
                 && StringUtils.isNotEmpty(testInformation.getHarpsFolderPath())
-                && proxyLight != null) {
+                && lightProxy != null) {
             try {
                 if (!Files.exists(Paths.get(testInformation.getHarpsFolderPath()))) { // TODO Mutualisation ?
                     Path directories = Files.createDirectories(Paths.get(testInformation.getHarpsFolderPath()));
                     CommonProxyUtilities.setFilePermissions(directories);
                     CommonProxyUtilities.setFilePermissions(directories.getParent());
                 }
-                String harp = proxyLight.getHarpAsJsonp();
+                String harp = lightProxy.getHarpAsJsonP();
                 if (StringUtils.isNotEmpty(harp)) {
                     String fileName = String.format("%s/%s", testInformation.getHarpsFolderPath(), testInformation.getHarpFileName());
                     FileUtils.writeStringToFile(new File(fileName), harp, StandardCharsets.UTF_8);
