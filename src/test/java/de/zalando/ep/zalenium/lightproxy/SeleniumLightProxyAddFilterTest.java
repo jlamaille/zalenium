@@ -18,7 +18,6 @@ public class SeleniumLightProxyAddFilterTest extends AbstractSeleniumLightProxyT
 
     @Test
     public void testFilterBlackList() {
-        RestTemplate mockRestTemplate = getMockRestTemplateWithSimulateCreateBmp(HTTP_LOCALHOST_80_PROXY);
         capabilitySupportedByDockerSelenium.put(ZaleniumCapabilityType.LIGHT_PROXY_BLACK_LIST,".*google.*");
         SeleniumLightProxy seleniumLightProxy = createSeleniumProxyLightWithMock(mockRestTemplate, capabilitySupportedByDockerSelenium);
 
@@ -36,7 +35,6 @@ public class SeleniumLightProxyAddFilterTest extends AbstractSeleniumLightProxyT
 
     @Test
     public void testFilterWhiteList() {
-        RestTemplate mockRestTemplate = getMockRestTemplateWithSimulateCreateBmp(HTTP_LOCALHOST_80_PROXY);
         capabilitySupportedByDockerSelenium.put(ZaleniumCapabilityType.LIGHT_PROXY_WHITE_LIST,".*pagesjaunes.*");
         SeleniumLightProxy seleniumLightProxy = createSeleniumProxyLightWithMock(mockRestTemplate, capabilitySupportedByDockerSelenium);
 

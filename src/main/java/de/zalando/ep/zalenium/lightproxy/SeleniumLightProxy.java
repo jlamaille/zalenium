@@ -160,24 +160,24 @@ public class SeleniumLightProxy {
     }
 
     /**
-     * Save HARP File for current test in after session.
+     * Save HAR File for current test in after session.
      */
-    public void saveHarp(final TestInformation testInformation) {
+    public void saveHar(final TestInformation testInformation) {
         if (testInformation != null
-                && StringUtils.isNotEmpty(testInformation.getHarpsFolderPath())
+                && StringUtils.isNotEmpty(testInformation.getHarFolderPath())
                 && lightProxy != null) {
             try {
-                if (!Files.exists(Paths.get(testInformation.getHarpsFolderPath()))) { // TODO Mutualisation ?
-                    Path directories = Files.createDirectories(Paths.get(testInformation.getHarpsFolderPath()));
+                if (!Files.exists(Paths.get(testInformation.getHarFolderPath()))) { // TODO Mutualisation ?
+                    Path directories = Files.createDirectories(Paths.get(testInformation.getHarFolderPath()));
                     CommonProxyUtilities.setFilePermissions(directories);
                     CommonProxyUtilities.setFilePermissions(directories.getParent());
                 }
-                String harp = lightProxy.getHarpAsJsonP();
-                if (StringUtils.isNotEmpty(harp)) {
-                    String fileName = String.format("%s/%s", testInformation.getHarpsFolderPath(), testInformation.getHarpFileName());
-                    FileUtils.writeStringToFile(new File(fileName), harp, StandardCharsets.UTF_8);
-                    Path harpFile = Paths.get(fileName);
-                    CommonProxyUtilities.setFilePermissions(harpFile);
+                String har = lightProxy.getHarAsJsonP();
+                if (StringUtils.isNotEmpty(har)) {
+                    String fileName = String.format("%s/%s", testInformation.getHarFolderPath(), testInformation.getHarFileName());
+                    FileUtils.writeStringToFile(new File(fileName), har, StandardCharsets.UTF_8);
+                    Path harFile = Paths.get(fileName);
+                    CommonProxyUtilities.setFilePermissions(harFile);
                 }
             } catch (RestClientException | IOException e) {
                 throw new RuntimeException("Error when getting HAR in proxy.", e);

@@ -34,7 +34,7 @@ public class TestInformation {
 
     private static final String LAMBDA_TEST_PROXY_NAME = "LambdaTest";
 
-    public static final String HARP_EXTENSION = ".harp";
+    public static final String HAR_EXTENSION = ".har";
 
     private static final CommonProxyUtilities commonProxyUtilities = new CommonProxyUtilities();
 
@@ -62,7 +62,7 @@ public class TestInformation {
 
     private String videoUrl;
 
-    private String harpFileName;
+    private String harFileName;
 
     private List<String> logUrls;
 
@@ -95,7 +95,7 @@ public class TestInformation {
 
     private JsonObject metadata;
 
-    private String harpsFolderPath;
+    private String harFolderPath;
 
     private String buildName;
 
@@ -177,9 +177,9 @@ public class TestInformation {
 
     public String getBuild() { return build; }
 
-    public String getHarpsFolderPath() { return harpsFolderPath; }
+    public String getHarFolderPath() { return harFolderPath; }
 
-    public String getHarpFileName() { return harpFileName; }
+    public String getHarFileName() { return harFileName; }
 
     public String getSeleniumLogFileName() { return seleniumLogFileName; }
 
@@ -306,7 +306,7 @@ public class TestInformation {
         }
     }
 
-    private TestInformation(TestInformationBuilder builder) { // TODO No pass in ?
+    private TestInformation(TestInformationBuilder builder) {
         this.seleniumSessionId = builder.seleniumSessionId;
         this.testName = builder.testName;
         this.timestamp = new Date();
@@ -330,9 +330,9 @@ public class TestInformation {
         buildTestNameNoExtension();
         buildSeleniumLogFileName();
         buildBrowserDriverLogFileName();
-        this.harpFileName = FILE_NAME_TEMPLATE.replace("{fileName}", testNameNoExtension)
-                .replace("{fileExtension}", HARP_EXTENSION);
-        this.harpsFolderPath = commonProxyUtilities.currentLocalPath() + "/" + Dashboard.VIDEOS_FOLDER_NAME +
+        this.harFileName = FILE_NAME_TEMPLATE.replace("{fileName}", testNameNoExtension)
+                .replace("{fileExtension}", HAR_EXTENSION);
+        this.harFolderPath = commonProxyUtilities.currentLocalPath() + "/" + Dashboard.VIDEOS_FOLDER_NAME +
                 buildName + "/" + Dashboard.HARS_FOLDER_NAME;
         buildVideoFileName();
     }
@@ -371,6 +371,8 @@ public class TestInformation {
         private JsonObject metadata;
 
         private List<RemoteLogFile> remoteLogFiles;
+
+        private String harFolderPath;
 
         public TestInformationBuilder withSeleniumSessionId(String seleniumSessionId) {
             this.seleniumSessionId = seleniumSessionId;
@@ -454,6 +456,11 @@ public class TestInformation {
 
         public TestInformationBuilder withMetadata(JsonObject metadata) {
             this.metadata = metadata;
+            return this;
+        }
+
+        public TestInformationBuilder withHarFolderPath(String harFolderPath) {
+            this.harFolderPath = harFolderPath;
             return this;
         }
 

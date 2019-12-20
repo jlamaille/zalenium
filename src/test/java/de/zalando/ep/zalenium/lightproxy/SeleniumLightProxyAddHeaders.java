@@ -20,7 +20,6 @@ public class SeleniumLightProxyAddHeaders extends AbstractSeleniumLightProxyTest
 
     @Test
     public void testFilterAddHeaders() {
-        RestTemplate mockRestTemplate = getMockRestTemplateWithSimulateCreateBmp(HTTP_LOCALHOST_80_PROXY);
         ImmutableMap<String, Object> overriddenHeaders = ImmutableMap.of("User-Agent", "BrowserMob-Agent");
         capabilitySupportedByDockerSelenium.put(ZaleniumCapabilityType.LIGHT_PROXY_HEADERS, overriddenHeaders);
         SeleniumLightProxy seleniumLightProxy = createSeleniumProxyLightWithMock(mockRestTemplate, capabilitySupportedByDockerSelenium);

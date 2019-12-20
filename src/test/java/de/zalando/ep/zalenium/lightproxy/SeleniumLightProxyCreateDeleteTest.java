@@ -31,7 +31,7 @@ public class SeleniumLightProxyCreateDeleteTest extends AbstractSeleniumLightPro
 
     @Test
     public void testCreateWithCorporateProxy() {
-        RestTemplate mockRestTemplate = getMockRestTemplateWithSimulateCreateBmp("http://localhost:80/proxy?httpProxy=proxytest:3128");
+        mockRestTemplate = getMockRestTemplateWithSimulateCreateBmp("http://localhost:80/proxy?httpProxy=proxytest:3128");
 
         TreeMap tp = new TreeMap();
         tp.put("httpProxy", "proxytest:3128");
@@ -43,14 +43,11 @@ public class SeleniumLightProxyCreateDeleteTest extends AbstractSeleniumLightPro
 
     @Test
     public void testCreateWithoutCorporateProxy() {
-        RestTemplate mockRestTemplate = getMockRestTemplateWithSimulateCreateBmp(HTTP_LOCALHOST_80_PROXY);
-
         callCreateBmpAndCheckResult(mockRestTemplate, capabilitySupportedByDockerSelenium, HTTP_LOCALHOST_80_PROXY);
     }
 
     @Test
     public void testDeleteSeleniumProxyLight() {
-        RestTemplate mockRestTemplate = getMockRestTemplateWithSimulateCreateBmp(HTTP_LOCALHOST_80_PROXY);
         SeleniumLightProxy seleniumLightProxy = createSeleniumProxyLightWithMock(mockRestTemplate, capabilitySupportedByDockerSelenium);
         doNothing().when(mockRestTemplate).delete(HTTP_LOCALHOST_80_PROXY_8001);
         seleniumLightProxy.getLightProxy().delete();
@@ -59,7 +56,6 @@ public class SeleniumLightProxyCreateDeleteTest extends AbstractSeleniumLightPro
 
     @Test
     public void testDeleteSeleniumProxyLightServerRestError() {
-        RestTemplate mockRestTemplate = getMockRestTemplateWithSimulateCreateBmp(HTTP_LOCALHOST_80_PROXY);
         SeleniumLightProxy seleniumLightProxy = createSeleniumProxyLightWithMock(mockRestTemplate, capabilitySupportedByDockerSelenium);
         doThrow(new RestClientException("Error Rest Mock")).when(mockRestTemplate).delete(HTTP_LOCALHOST_80_PROXY_8001);
         thrown.expect(RuntimeException.class);
@@ -69,8 +65,6 @@ public class SeleniumLightProxyCreateDeleteTest extends AbstractSeleniumLightPro
 
     @Test
     public void testCreateWithBadTypeInCorporateProxy() {
-        RestTemplate mockRestTemplate = getMockRestTemplateWithSimulateCreateBmp(HTTP_LOCALHOST_80_PROXY);
-
         TreeMap tp = new TreeMap();
         Integer one = new Integer(1);
         tp.put("httpProxy", one);

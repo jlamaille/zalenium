@@ -40,8 +40,6 @@ public class BrowserMobProxy implements LightProxy {
     private static final String BLACKLIST_PATH = "/blacklist";
     private static final String HEADERS_PATH = "/headers";
     public static final String LOCALHOST = "127.0.0.1";
-    public static final String ON_INPUT_DATA_S = "onInputData(%s);";
-
 
     // Object to manipulate Rest Service
     private RestTemplate restTemplate;
@@ -73,14 +71,13 @@ public class BrowserMobProxy implements LightProxy {
     }
 
     @Override
-    public String getHarpAsJsonP() {
+    public String getHarAsJsonP() {
         LOGGER.debug("Getting HAR in browsermob proxy on port {}", port.toString());
         try {
             String harJson = Optional.ofNullable(restTemplate.getForEntity(
                     UriComponentsBuilder.fromUri(this.uriSubProxyServer.build().toUri()).path(HAR_PATH).build().toUriString(),
                     String.class).getBody()).orElse(StringUtils.EMPTY);
-            return StringUtils.isNotEmpty(harJson) ? String.format(ON_INPUT_DATA_S,
-                    harJson) : harJson;
+            return harJson;
         } catch (RestClientException e) {
             throw new RuntimeException("Error when get HAR in browsermob proxy. " + e.getLocalizedMessage(), e);
         }
@@ -145,7 +142,7 @@ public class BrowserMobProxy implements LightProxy {
     @Override
     public void addCapturePage(final String pageId, final MultiValueMap<String, Object> overriddenCaptureSetting) {
         // If HAR not created
-        String har = getHarpAsJsonP();
+        String har = getHarAsJsonP();
         if (StringUtils.isEmpty(har)) {
             // Create HAR with pageRef
             MultiValueMap<String, Object> captureSettings = getCaptureSettings(pageId, overriddenCaptureSetting, "initialPageRef");

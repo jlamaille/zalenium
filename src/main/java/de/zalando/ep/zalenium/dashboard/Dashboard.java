@@ -284,7 +284,7 @@ public class Dashboard implements DashboardInterface {
                     .replace("logs/", StringUtils.EMPTY));
             String browserDriverLogFileName = buildDirectory.concat("logs/").concat(testInformation.getBrowserDriverLogFileName()
                     .replace("logs/", StringUtils.EMPTY));
-            String harpFileName = testInformation.getHarpsFolderPath().replace("/home/seluser/videos/", StringUtils.EMPTY).concat("/").concat(testInformation.getHarpFileName());
+            String harFileName = testInformation.getHarFolderPath().replace("/home/seluser/videos/", StringUtils.EMPTY).concat("/").concat(testInformation.getHarFileName());
             String testItem = itemTemplate
                     .replace("{fileName}", fileName)
                     .replace("{testName}", testInformation.getTestName())
@@ -303,7 +303,7 @@ public class Dashboard implements DashboardInterface {
                     .replace("{timeZone}", testInformation.getTimeZone())
                     .replace("{build}", testInformation.getBuild())
                     .replace("{seleniumLogFileName}", seleniumLogFileName)
-                    .replace("{harpFileName}", harpFileName)
+                    .replace("{harFileName}", harFileName)
                     .replace("{browserDriverLogFileName}", browserDriverLogFileName)
                     .replace("{retentionDate}", testInformation.getRetentionDate().toString());
             testItems.add(testItem);

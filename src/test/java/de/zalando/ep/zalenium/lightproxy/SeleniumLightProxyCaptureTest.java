@@ -22,7 +22,6 @@ import static org.mockito.Mockito.*;
 
 public class SeleniumLightProxyCaptureTest extends AbstractSeleniumLightProxyTest {
 
-    public static final String HTTP_LOCALHOST_80_PROXY_8001_HAR = HTTP_LOCALHOST_80_PROXY_8001 + "/har";
     public static final String ON_INPUT_DATA_HAR_LOG = "onInputData(har log);";
     public static final String HTTP_LOCALHOST_80_PROXY_8001_HAR_PAGE_REF = HTTP_LOCALHOST_80_PROXY_8001 + "/har/pageRef";
     public static final String HTTP_WWW_PAGESJAUNES_FR = "http://www.pagesjaunes.fr";
@@ -30,7 +29,6 @@ public class SeleniumLightProxyCaptureTest extends AbstractSeleniumLightProxyTes
 
     @Test
     public void testCaptureTwoPages() {
-        RestTemplate mockRestTemplate = getMockRestTemplateWithSimulateCreateBmp(HTTP_LOCALHOST_80_PROXY);
         SeleniumLightProxy seleniumLightProxy = createSeleniumProxyLightWithMock(mockRestTemplate, capabilitySupportedByDockerSelenium);
         when(mockRestTemplate.getForEntity(HTTP_LOCALHOST_80_PROXY_8001_HAR, String.class)).thenReturn(ResponseEntity.of(Optional.empty()));
 
@@ -42,7 +40,7 @@ public class SeleniumLightProxyCaptureTest extends AbstractSeleniumLightProxyTes
         verify(mockRestTemplate).put(HTTP_LOCALHOST_80_PROXY_8001_HAR, requestCreateHar1);
 
         when(mockRestTemplate.getForEntity(HTTP_LOCALHOST_80_PROXY_8001_HAR, String.class)).thenReturn(ResponseEntity.ok("har log"));
-        Assert.assertThat(seleniumLightProxy.getLightProxy().getHarpAsJsonP(), equalTo(ON_INPUT_DATA_HAR_LOG));
+        Assert.assertThat(seleniumLightProxy.getLightProxy().getHarAsJsonP(), equalTo(ON_INPUT_DATA_HAR_LOG));
 
         SeleniumBasedRequest request2 = getSeleniumBasedRequestForCommandUrl("{\"url\" : \"" + HTTP_WWW_MAPPY_FR + "\" }");
         HttpEntity<Object> requestCreateHar2 = getHttpEntityWithCaptureSetting("pageRef", HTTP_WWW_MAPPY_FR);
@@ -57,7 +55,6 @@ public class SeleniumLightProxyCaptureTest extends AbstractSeleniumLightProxyTes
 
     @Test
     public void testCapturePageWithOverriddenSettings() {
-        RestTemplate mockRestTemplate = getMockRestTemplateWithSimulateCreateBmp(HTTP_LOCALHOST_80_PROXY);
         MultiValueMap<String, Object> captureContent = buildDefaultCaptureHarSettingsWithOneOverriddenSetting("captureContent", false);
         capabilitySupportedByDockerSelenium.put(ZaleniumCapabilityType.LIGHT_PROXY_CAPTURE_HAR_SETTINGS, captureContent);
         SeleniumLightProxy seleniumLightProxy = createSeleniumProxyLightWithMock(mockRestTemplate, capabilitySupportedByDockerSelenium);
@@ -77,7 +74,6 @@ public class SeleniumLightProxyCaptureTest extends AbstractSeleniumLightProxyTes
 
     @Test
     public void testCapturePageDisable() {
-        RestTemplate mockRestTemplate = getMockRestTemplateWithSimulateCreateBmp(HTTP_LOCALHOST_80_PROXY);
         capabilitySupportedByDockerSelenium.put(ZaleniumCapabilityType.LIGHT_PROXY_CAPTURE_HAR, "false");
         SeleniumLightProxy seleniumLightProxy = createSeleniumProxyLightWithMock(mockRestTemplate, capabilitySupportedByDockerSelenium);
         SeleniumBasedRequest request = getSeleniumBasedRequestForCommandUrl("{\"url\" : \"" + HTTP_WWW_PAGESJAUNES_FR + "\" }");
