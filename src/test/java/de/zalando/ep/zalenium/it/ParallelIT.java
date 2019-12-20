@@ -1,8 +1,6 @@
 package de.zalando.ep.zalenium.it;
 
-import de.zalando.ep.zalenium.matcher.ZaleniumCapabilityType;
 import org.openqa.selenium.Platform;
-import org.openqa.selenium.Proxy;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.net.NetworkUtils;
 import org.openqa.selenium.remote.BrowserType;
@@ -19,15 +17,13 @@ import org.testng.util.Strings;
 import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.HashMap;
-import java.util.Map;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.CoreMatchers.containsString;
 
 
 @SuppressWarnings("UnusedParameters")
-public class ParallelIT {
+public class ParallelIT  {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ParallelIT.class);
     private static final String sauceLabsIntegration = "sauceLabs";
@@ -98,7 +94,7 @@ public class ParallelIT {
             safariCaps.setCapability("version", "11.0");
             safariCaps.setCapability("platform", "macOS High Sierra");
         }
-        return new Object[]{safariCaps, edgeCaps, chromeCaps, firefoxCaps};
+        return new Object[] {safariCaps, edgeCaps, chromeCaps, firefoxCaps};
     }
 
     // Data provider which returns the browsers that will be used to run the tests
@@ -109,12 +105,12 @@ public class ParallelIT {
         chromeCaps.setPlatform(Platform.ANY);
         chromeCaps.setCapability("build", "2389");
 
-//        DesiredCapabilities firefoxCaps = new DesiredCapabilities();
-//        firefoxCaps.setBrowserName(BrowserType.FIREFOX);
-//        firefoxCaps.setPlatform(Platform.ANY);
-//        firefoxCaps.setCapability("build", "sample build");
+        DesiredCapabilities firefoxCaps = new DesiredCapabilities();
+        firefoxCaps.setBrowserName(BrowserType.FIREFOX);
+        firefoxCaps.setPlatform(Platform.ANY);
+        firefoxCaps.setCapability("build", "sample build");
 
-        return new Object[]{chromeCaps/*, firefoxCaps*/};
+        return new Object[] {chromeCaps, firefoxCaps};
     }
 
     @BeforeMethod(alwaysRun = true)
@@ -122,23 +118,6 @@ public class ParallelIT {
         String zaleniumUrl = String.format("http://%s:%s/wd/hub", ZALENIUM_HOST, ZALENIUM_PORT);
         DesiredCapabilities desiredCapabilities = (DesiredCapabilities) desiredCaps[0];
         desiredCapabilities.setCapability("name", method.getName());
-
-        // TODO pour test JLA sortir dans un param ou autre classe IT
-//        desiredCapabilities.setCapability(ZaleniumCapabilityType.BROWSERMOBPROXY_WHITE_LIST, ".*local.*");
-        desiredCapabilities.setCapability("idleTimeout", 30000);
-        Proxy proxy = new Proxy();
-        proxy.setHttpProxy("proxytest.services.local:3128");
-        proxy.setProxyType(Proxy.ProxyType.MANUAL);
-//        desiredCapabilities.setCapability(CapabilityType.PROXY, proxy);
-
-        Map<String, Object> overridedHeaders = new HashMap<>();
-        overridedHeaders.put("jla-mock", "juju");
-        overridedHeaders.put("User-Agent", "BrowserMob-Agent");
-//        overridedHeaders.put("X-PJ-MOCK", "true");
-//        desiredCapabilities.setCapability(ZaleniumCapabilityType.BROWSERMOBPROXY_HEADERS, overridedHeaders);
-
-        desiredCapabilities.setCapability(ZaleniumCapabilityType.LIGHT_PROXY_BLACK_LIST, ".*(mappy|gstatic|accengage|kameleoon|xiti|gigya).*");
-
         LOGGER.info("Integration to test: {}", System.getProperty("integrationToTest"));
         LOGGER.info("STARTING {}", desiredCapabilities.toString());
 
@@ -167,22 +146,6 @@ public class ParallelIT {
     // Returns the webDriver for the current thread
     private WebDriver getWebDriver() {
         return webDriver.get();
-    }
-
-    @Test(dataProvider = "browsersAndPlatformsForLivePreview")
-    public void checkBrowserMobProxy(DesiredCapabilities desiredCapabilities) {
-
-        // Go to the homepage
-//        getWebDriver().get("http://www.cd.pagesjaunes.fr");
-        getWebDriver().get("http://www.pagesjaunes.fr");
-//
-        getWebDriver().get("http://www.cdiscount.fr");
-
-//        getWebDriver().get("https://www.pagesjaunes.fr/annuaire/chercherlespros?quoiqui=resto&ou=rennes&proximite=0");
-
-        // Get the page source to get the iFrame links
-        String pageSource = getWebDriver().getPageSource();
-
     }
 
     @Test(dataProvider = "browsersAndPlatformsForLivePreview")
