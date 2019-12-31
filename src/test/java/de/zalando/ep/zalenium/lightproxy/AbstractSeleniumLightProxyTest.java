@@ -19,6 +19,7 @@ import static org.springframework.http.ResponseEntity.ok;
 
 abstract class AbstractSeleniumLightProxyTest {
 
+    protected static final String HAR_LOG = "har log";
     protected static final String HTTP_LOCALHOST_80_PROXY = "http://localhost:80/proxy";
     protected static final String HTTP_LOCALHOST_80_PROXY_8001 = HTTP_LOCALHOST_80_PROXY + "/8001";
     protected static final String HTTP_LOCALHOST_80_PROXY_8001_HAR = HTTP_LOCALHOST_80_PROXY_8001 + "/har";

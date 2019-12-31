@@ -12,7 +12,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
-import org.springframework.web.client.RestTemplate;
 
 import java.util.Collections;
 import java.util.Optional;
@@ -22,7 +21,6 @@ import static org.mockito.Mockito.*;
 
 public class SeleniumLightProxyCaptureTest extends AbstractSeleniumLightProxyTest {
 
-    public static final String ON_INPUT_DATA_HAR_LOG = "onInputData(har log);";
     public static final String HTTP_LOCALHOST_80_PROXY_8001_HAR_PAGE_REF = HTTP_LOCALHOST_80_PROXY_8001 + "/har/pageRef";
     public static final String HTTP_WWW_PAGESJAUNES_FR = "http://www.pagesjaunes.fr";
     public static final String HTTP_WWW_MAPPY_FR = "http://www.mappy.fr";
@@ -40,7 +38,7 @@ public class SeleniumLightProxyCaptureTest extends AbstractSeleniumLightProxyTes
         verify(mockRestTemplate).put(HTTP_LOCALHOST_80_PROXY_8001_HAR, requestCreateHar1);
 
         when(mockRestTemplate.getForEntity(HTTP_LOCALHOST_80_PROXY_8001_HAR, String.class)).thenReturn(ResponseEntity.ok("har log"));
-        Assert.assertThat(seleniumLightProxy.getLightProxy().getHarAsJsonP(), equalTo(ON_INPUT_DATA_HAR_LOG));
+        Assert.assertThat(seleniumLightProxy.getLightProxy().getHarAsJsonP(), equalTo(HAR_LOG));
 
         SeleniumBasedRequest request2 = getSeleniumBasedRequestForCommandUrl("{\"url\" : \"" + HTTP_WWW_MAPPY_FR + "\" }");
         HttpEntity<Object> requestCreateHar2 = getHttpEntityWithCaptureSetting("pageRef", HTTP_WWW_MAPPY_FR);

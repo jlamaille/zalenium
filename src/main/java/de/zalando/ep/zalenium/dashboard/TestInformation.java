@@ -332,8 +332,8 @@ public class TestInformation {
         buildBrowserDriverLogFileName();
         this.harFileName = FILE_NAME_TEMPLATE.replace("{fileName}", testNameNoExtension)
                 .replace("{fileExtension}", HAR_EXTENSION);
-        this.harFolderPath = commonProxyUtilities.currentLocalPath() + "/" + Dashboard.VIDEOS_FOLDER_NAME +
-                buildName + "/" + Dashboard.HARS_FOLDER_NAME;
+        this.harFolderPath = Optional.ofNullable(builder.harFolderPath).orElse(commonProxyUtilities.currentLocalPath() + "/" + Dashboard.VIDEOS_FOLDER_NAME +
+                buildName + "/" + Dashboard.HARS_FOLDER_NAME);
         buildVideoFileName();
     }
 

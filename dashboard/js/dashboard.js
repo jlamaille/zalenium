@@ -90,7 +90,7 @@ function playVideo($video) {
 }
 
 function setTestInformation($testName, $browser, $browserVersion, $platform, $proxyName, $dateTime,
-                            $screenDimension, $timeZone, $build, $testStatus, $retentionDate) {
+                            $screenDimension, $timeZone, $build, $testStatus, $retentionDate, $harFile) {
     const testName = $("#test-name");
     testName.html("");
     testName.append("<img alt=\"" + $testStatus + "\" src=\"img/" + $testStatus.toLowerCase() + ".png\" class=\"mr-1\" " +
@@ -120,6 +120,17 @@ function setTestInformation($testName, $browser, $browserVersion, $platform, $pr
             "width=\"48px\" height=\"48px\">");
         screenResolutionTimeZone.append("<small class=\"mr-1\">" + $timeZone + "</small>");
     }
+
+    if($("#harFile") !== "") {
+        const buildElement = $("#harFile");
+        buildElement.html("");
+        buildElement.removeClass("p-0");
+        buildElement.addClass("p-1");
+        buildElement.parent().removeClass("invisible");
+        buildElement.append("<img alt=\"Har\" target=\"_blank\" src=\"img/har.png\" class=\"mr-1\" width=\"48px\" height=\"48px\">");
+        buildElement.append("<a class=\"mr-1\" href=\"" + window.location.href.slice("#", -1) + $harFile + "\">HTTP Archive</a>");
+    }
+
     screenResolutionTimeZone.append("<span class=\"float-right\"><img alt=\"Retention Date\" src=\"img/retention-date.png\" " +
         "class=\"mr-1\" width=\"48px\" height=\"48px\"><small>" + $retentionDate + "</small></span>");
     if ($build.toString().length > 0) {
@@ -155,11 +166,6 @@ function loadLogs($seleniumLogFile, $browserDriverLogFile) {
     if ($browserDriverLogFile.length > 0) {
         browserDriverLog.load($browserDriverLogFile);
     }
-}
-
-function loadHar($harFile) {
-//   $("#harView").attr("data-har", window.location.href.slice("#", -1) +  $harFile);
-//   harInitialize();
 }
 
 function blockUi() {
@@ -242,16 +248,13 @@ $(document).ready(function() {
 
         // Set test info to be displayed
         setTestInformation($testName, $browser, $browserVersion, $platform, $proxyName, $dateTime,
-            $screenDimension, $timeZone, $build, $testStatus, $retentionDate);
+            $screenDimension, $timeZone, $build, $testStatus, $retentionDate, $harFile);
 
         // Pass clicked link element to another function
         playVideo($video);
 
         // Load logs
         loadLogs($seleniumLogFile, $browserDriverLogFile);
-
-        // Load har
-        loadHar($harFile);
 
         // Select first tab
         $("#testTabs").find("a:first").tab("show");

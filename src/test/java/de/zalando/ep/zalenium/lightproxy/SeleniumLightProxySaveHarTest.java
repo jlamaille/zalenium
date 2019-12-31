@@ -54,13 +54,8 @@ public class SeleniumLightProxySaveHarTest extends AbstractSeleniumLightProxyTes
         seleniumLightProxy.saveHar(ti);
         String har = FileUtils.readFileToString(new File(ti.getHarFolderPath() + "/" + ti.getHarFileName()), UTF_8);
         Assert.assertNotNull(har);
-        Assert.assertThat(har, Matchers.equalTo("har log"));
+        Assert.assertThat(har, Matchers.equalTo(HAR_LOG));
 
-    }
-
-    @After
-    public void afterTest() {
-        temporaryFolder.delete();
     }
 
     private HttpEntity<Object> getHttpEntityWithOverriddenHeaders(final Map<String, Object> overriddenHeaders) {
