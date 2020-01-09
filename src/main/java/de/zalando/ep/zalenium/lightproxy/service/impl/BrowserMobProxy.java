@@ -71,7 +71,7 @@ public class BrowserMobProxy implements LightProxy {
     }
 
     @Override
-    public String getHarAsJsonP() {
+    public String getHarAsJson() {
         LOGGER.debug("Getting HAR in browsermob proxy on port {}", port.toString());
         try {
             String harJson = Optional.ofNullable(restTemplate.getForEntity(
@@ -142,7 +142,7 @@ public class BrowserMobProxy implements LightProxy {
     @Override
     public void addCapturePage(final String pageId, final MultiValueMap<String, Object> overriddenCaptureSetting) {
         // If HAR not created
-        String har = getHarAsJsonP();
+        String har = getHarAsJson();
         if (StringUtils.isEmpty(har)) {
             // Create HAR with pageRef
             MultiValueMap<String, Object> captureSettings = getCaptureSettings(pageId, overriddenCaptureSetting, "initialPageRef");

@@ -101,7 +101,7 @@ public class SeleniumLightProxy {
                 && (!requestedCapabilities.containsKey(ZaleniumCapabilityType.LIGHT_PROXY_CAPTURE_HAR) ||
                     Boolean.parseBoolean(Optional.ofNullable(
                             requestedCapabilities.get(ZaleniumCapabilityType.LIGHT_PROXY_CAPTURE_HAR)).
-                            orElse("true").toString()))
+                            orElse(Boolean.TRUE).toString()))
                 && seleniumRequest != null
                 && StringUtils.isNotEmpty(seleniumRequest.getPathInfo())
                 && seleniumRequest.getPathInfo().endsWith("url")
@@ -164,6 +164,7 @@ public class SeleniumLightProxy {
      */
     public void saveHar(final TestInformation testInformation) {
         if (testInformation != null
+                && testInformation.isHarCaptured()
                 && StringUtils.isNotEmpty(testInformation.getHarFolderPath())
                 && lightProxy != null) {
             try {
@@ -172,7 +173,7 @@ public class SeleniumLightProxy {
                     CommonProxyUtilities.setFilePermissions(directories);
                     CommonProxyUtilities.setFilePermissions(directories.getParent());
                 }
-                String har = lightProxy.getHarAsJsonP();
+                String har = lightProxy.getHarAsJson();
                 if (StringUtils.isNotEmpty(har)) {
                     String fileName = String.format("%s/%s", testInformation.getHarFolderPath(), testInformation.getHarFileName());
                     FileUtils.writeStringToFile(new File(fileName), har, StandardCharsets.UTF_8);

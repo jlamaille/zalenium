@@ -9,7 +9,7 @@ public interface LightProxy {
 
     String getProxyUrl();
 
-    String getHarAsJsonP();
+    String getHarAsJson();
 
     LightProxy create();
 

@@ -303,6 +303,7 @@ public class Dashboard implements DashboardInterface {
                     .replace("{timeZone}", testInformation.getTimeZone())
                     .replace("{build}", testInformation.getBuild())
                     .replace("{seleniumLogFileName}", seleniumLogFileName)
+                    .replace("{harCaptured}", Boolean.toString(testInformation.isHarCaptured()))
                     .replace("{harFileName}", harFileName)
                     .replace("{browserDriverLogFileName}", browserDriverLogFileName)
                     .replace("{retentionDate}", testInformation.getRetentionDate().toString());

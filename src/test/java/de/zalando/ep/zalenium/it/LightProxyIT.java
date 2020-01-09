@@ -1,19 +1,30 @@
 package de.zalando.ep.zalenium.it;
 
+import com.google.common.base.Charsets;
 import de.zalando.ep.zalenium.matcher.ZaleniumCapabilityType;
+import org.apache.commons.io.FileUtils;
+import org.junit.Assert;
 import org.junit.Test;
+import org.openqa.selenium.By;
 import org.openqa.selenium.Platform;
-import org.openqa.selenium.Proxy;
 import org.openqa.selenium.remote.BrowserType;
 import org.openqa.selenium.remote.DesiredCapabilities;
 import org.openqa.selenium.remote.RemoteWebDriver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
+import java.io.IOException;
+import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.Map;
+
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.CoreMatchers.containsString;
 
 
 @SuppressWarnings("UnusedParameters")
@@ -29,57 +40,39 @@ public class LightProxyIT {
 
 
     @Test
-    public void checkBrowserMobProxy() throws MalformedURLException {
-
+    public void checkBrowserMobProxy() throws IOException {
         DesiredCapabilities chromeCaps = new DesiredCapabilities();
         chromeCaps.setBrowserName(BrowserType.CHROME);
         chromeCaps.setPlatform(Platform.ANY);
         chromeCaps.setCapability("build", "2389");
+        String testName = "checkBrowserMobProxyNominalCase";
+        chromeCaps.setCapability("name", testName);
 
-        String zaleniumUrl = String.format("http://%s:%s/wd/hub", ZALENIUM_HOST, ZALENIUM_PORT);
-        chromeCaps.setCapability("name", "checkBrowserMobProxy");
-
-        // TODO pour test JLA sortir dans un param ou autre classe IT
-//        desiredCapabilities.setCapability(ZaleniumCapabilityType.BROWSERMOBPROXY_WHITE_LIST, ".*local.*");
-//        chromeCaps.setCapability("idleTimeout", 30000);
-        Proxy proxy = new Proxy();
-        proxy.setHttpProxy("proxytest.services.local:3128");
-        proxy.setProxyType(Proxy.ProxyType.MANUAL);
-//        desiredCapabilities.setCapability(CapabilityType.PROXY, proxy);
+        chromeCaps.setCapability(ZaleniumCapabilityType.LIGHT_PROXY, true);
+        chromeCaps.setCapability(ZaleniumCapabilityType.LIGHT_PROXY_CAPTURE_HAR, true);
+        chromeCaps.setCapability("idleTimeout", 30000);
 
         Map<String, Object> overridedHeaders = new HashMap<>();
-        overridedHeaders.put("jla-mock", "juju");
-        overridedHeaders.put("User-Agent", "BrowserMob-Agent");
-//        overridedHeaders.put("X-PJ-MOCK", "true");
-//        desiredCapabilities.setCapability(ZaleniumCapabilityType.BROWSERMOBPROXY_HEADERS, overridedHeaders);
+        overridedHeaders.put("User-Agent", "LightProxy-Agent");
+        chromeCaps.setCapability(ZaleniumCapabilityType.LIGHT_PROXY_HEADERS, overridedHeaders);
+        chromeCaps.setCapability(ZaleniumCapabilityType.LIGHT_PROXY_BLACK_LIST, ".*(chrome_driver).*");
 
-        chromeCaps.setCapability(ZaleniumCapabilityType.LIGHT_PROXY_CAPTURE_HAR, false);
-
-        chromeCaps.setCapability(ZaleniumCapabilityType.LIGHT_PROXY_BLACK_LIST, ".*(mappy|gstatic|accengage|kameleoon|xiti|gigya).*");
-
-        LOGGER.info("Integration to test: {}", System.getProperty("integrationToTest"));
-        LOGGER.info("STARTING {}", chromeCaps.toString());
-
-        RemoteWebDriver webDriver;
+        RemoteWebDriver webDriver = null;
         try {
-            webDriver = new RemoteWebDriver(new URL(zaleniumUrl), chromeCaps);
+//            FileUtils.deleteDirectory(FileUtils.getFile("/tmp/videos/2389"));
+            webDriver = new RemoteWebDriver(new URL(String.format("http://%s:%s/wd/hub", ZALENIUM_HOST, ZALENIUM_PORT)), chromeCaps);
         } catch (Exception e) {
             LOGGER.warn("FAILED on {}", chromeCaps.toString());
             throw e;
+        } finally {
+            if (webDriver != null) {
+                webDriver.quit();
+            }
         }
-
-        // Go to the homepage
-        webDriver.get("http://www.cd.pagesjaunes.fr");
-//        getWebDriver().get("http://www.pagesjaunes.fr");
-//
-//        getWebDriver().get("http://www.cdiscount.fr");
-
-//        getWebDriver().get("https://www.pagesjaunes.fr/annuaire/chercherlespros?quoiqui=resto&ou=rennes&proximite=0");
-
-        // Get the page source to get the iFrame links
-//        String pageSource = getWebDriver().getPageSource();
-
-        webDriver.quit();
+//        File harFile = FileUtils.getFile("/tmp/videos/2389/hars/zalenium_check" + testName + "*.har");
+//        String har = FileUtils.readFileToString(harFile, Charsets.UTF_8);
+//        assertThat(har, containsString("LightProxy-Agent"));
+//        assertThat(har, containsString("chrome_driver"));
 
     }
 }

@@ -74,7 +74,7 @@ public class TestInformation {
 
     private String testNameNoExtension;
 
-    @SuppressWarnings({ "unused", "FieldCanBeLocal" })
+    @SuppressWarnings({"unused", "FieldCanBeLocal"})
     private String screenDimension;
 
     private String timeZone;
@@ -99,8 +99,28 @@ public class TestInformation {
 
     private String buildName;
 
+    private boolean isProxyLightEnabled;
+
+    private boolean isHarCaptured;
+
+    public boolean isProxyLightEnabled() {
+        return isProxyLightEnabled;
+    }
+
+    public void setProxyLightEnabled(boolean proxyLightEnabled) {
+        isProxyLightEnabled = proxyLightEnabled;
+    }
+
     public boolean isVideoRecorded() {
         return videoRecorded;
+    }
+
+    public boolean isHarCaptured() {
+        return isHarCaptured;
+    }
+
+    public void setHarCaptured(boolean harCaptured) {
+        isHarCaptured = harCaptured;
     }
 
     public void setVideoRecorded(boolean videoRecorded) {
@@ -175,15 +195,25 @@ public class TestInformation {
         return timeZone;
     }
 
-    public String getBuild() { return build; }
+    public String getBuild() {
+        return build;
+    }
 
-    public String getHarFolderPath() { return harFolderPath; }
+    public String getHarFolderPath() {
+        return harFolderPath;
+    }
 
-    public String getHarFileName() { return harFileName; }
+    public String getHarFileName() {
+        return harFileName;
+    }
 
-    public String getSeleniumLogFileName() { return seleniumLogFileName; }
+    public String getSeleniumLogFileName() {
+        return seleniumLogFileName;
+    }
 
-    public String getBrowserDriverLogFileName() { return browserDriverLogFileName; }
+    public String getBrowserDriverLogFileName() {
+        return browserDriverLogFileName;
+    }
 
     public Date getRetentionDate() {
         return retentionDate;
@@ -337,7 +367,7 @@ public class TestInformation {
         buildVideoFileName();
     }
 
-    public static class TestInformationBuilder { // TODO jlamaille Lombok Builder
+    public static class TestInformationBuilder {
         private String seleniumSessionId;
 
         private String testName;

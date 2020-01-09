@@ -38,7 +38,7 @@ public class SeleniumLightProxyCaptureTest extends AbstractSeleniumLightProxyTes
         verify(mockRestTemplate).put(HTTP_LOCALHOST_80_PROXY_8001_HAR, requestCreateHar1);
 
         when(mockRestTemplate.getForEntity(HTTP_LOCALHOST_80_PROXY_8001_HAR, String.class)).thenReturn(ResponseEntity.ok("har log"));
-        Assert.assertThat(seleniumLightProxy.getLightProxy().getHarAsJsonP(), equalTo(HAR_LOG));
+        Assert.assertThat(seleniumLightProxy.getLightProxy().getHarAsJson(), equalTo(HAR_LOG));
 
         SeleniumBasedRequest request2 = getSeleniumBasedRequestForCommandUrl("{\"url\" : \"" + HTTP_WWW_MAPPY_FR + "\" }");
         HttpEntity<Object> requestCreateHar2 = getHttpEntityWithCaptureSetting("pageRef", HTTP_WWW_MAPPY_FR);
