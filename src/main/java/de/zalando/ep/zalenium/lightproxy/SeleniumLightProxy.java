@@ -113,7 +113,7 @@ public class SeleniumLightProxy {
                     LOGGER.debug("Adding capture with har file for url {}", urlObject.getAsString());
                     Object browserCaptureSettings = requestedCapabilities.get(ZaleniumCapabilityType.LIGHT_PROXY_CAPTURE_HAR_SETTINGS);
                     lightProxy.addCapturePage(urlObject.getAsString(),
-                            browserCaptureSettings != null ? (MultiValueMap<String, Object>) browserCaptureSettings : null);
+                            browserCaptureSettings != null ? (LinkedHashMap<String, Object>) browserCaptureSettings : null);
                 }
             }
         }
@@ -164,11 +164,12 @@ public class SeleniumLightProxy {
      */
     public void saveHar(final TestInformation testInformation) {
         if (testInformation != null
+                && testInformation.isProxyLightEnabled()
                 && testInformation.isHarCaptured()
                 && StringUtils.isNotEmpty(testInformation.getHarFolderPath())
                 && lightProxy != null) {
             try {
-                if (!Files.exists(Paths.get(testInformation.getHarFolderPath()))) { // TODO Mutualisation ?
+                if (!Files.exists(Paths.get(testInformation.getHarFolderPath()))) {
                     Path directories = Files.createDirectories(Paths.get(testInformation.getHarFolderPath()));
                     CommonProxyUtilities.setFilePermissions(directories);
                     CommonProxyUtilities.setFilePermissions(directories.getParent());

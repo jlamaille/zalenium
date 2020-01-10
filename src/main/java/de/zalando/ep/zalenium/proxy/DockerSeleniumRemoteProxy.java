@@ -833,7 +833,7 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
             videoRecording(DockerSeleniumContainerAction.STOP_RECORDING);
             processContainerAction(DockerSeleniumContainerAction.TRANSFER_LOGS, getContainerId());
 
-            if (seleniumLightProxy != null && testInformation.isProxyLightEnabled()) {
+            if (seleniumLightProxy != null) {
                 seleniumLightProxy.saveHar(testInformation);
                 LightProxy proxyLight = seleniumLightProxy.getLightProxy();
                 if (proxyLight != null) {

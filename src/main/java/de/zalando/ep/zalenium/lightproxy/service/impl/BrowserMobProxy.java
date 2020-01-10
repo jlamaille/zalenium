@@ -140,7 +140,7 @@ public class BrowserMobProxy implements LightProxy {
     }
 
     @Override
-    public void addCapturePage(final String pageId, final MultiValueMap<String, Object> overriddenCaptureSetting) {
+    public void addCapturePage(final String pageId, final LinkedHashMap<String, Object> overriddenCaptureSetting) {
         // If HAR not created
         String har = getHarAsJson();
         if (StringUtils.isEmpty(har)) {
@@ -160,11 +160,14 @@ public class BrowserMobProxy implements LightProxy {
     /**
      * Mapped Proxy with Browser Mob Proxy server.
      */
-    private MultiValueMap<String, Object> getCaptureSettings(String pageId, MultiValueMap<String, Object> overriddenCaptureSetting, String pageType) {
-        MultiValueMap<String, Object> captureSettings = Optional.ofNullable(overriddenCaptureSetting).orElse(new LinkedMultiValueMap<>());
+    private MultiValueMap<String, Object> getCaptureSettings(String pageId, LinkedHashMap<String, Object> overriddenCaptureSetting, String pageType) {
+        MultiValueMap<String, Object> captureSettings = new LinkedMultiValueMap<>();
+        overriddenCaptureSetting.entrySet().forEach(o -> {
+            captureSettings.putIfAbsent(o.getKey(), Collections.singletonList(o.getValue()));
+        });
         captureSettings.add(pageType, pageId);
-        DEFAULT_CAPTURE_SETTINGS.stream().forEach(s -> {
-            captureSettings.putIfAbsent(s, Collections.singletonList(Boolean.TRUE));
+        DEFAULT_CAPTURE_SETTINGS.forEach(s -> {
+            captureSettings.putIfAbsent(s,  Collections.singletonList(Boolean.TRUE));
         });
         return captureSettings;
     }
