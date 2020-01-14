@@ -6,6 +6,7 @@ import org.apache.commons.io.FileUtils;
 import org.junit.Assert;
 import org.junit.Test;
 import org.openqa.selenium.Platform;
+import org.openqa.selenium.net.NetworkUtils;
 import org.openqa.selenium.remote.BrowserType;
 import org.openqa.selenium.remote.DesiredCapabilities;
 import org.openqa.selenium.remote.RemoteWebDriver;
@@ -53,10 +54,9 @@ public class LightProxyIT {
                 FileUtils.deleteDirectory(oldBuild);
             }
             webDriver = new RemoteWebDriver(new URL(String.format("http://%s:%s/wd/hub", ZALENIUM_HOST, ZALENIUM_PORT)), chromeCaps);
-            // Go to the homepage
-            InetAddress addr = InetAddress.getLocalHost();
-            String ip = addr.getHostAddress();
-            webDriver.get("http://" + ip + ":4444/dashboard/#");
+            NetworkUtils networkUtils = new NetworkUtils();
+            String hostIpAddress = networkUtils.getIp4NonLoopbackAddressOfThisMachine().getHostAddress();
+            webDriver.get(String.format("http://%s:%s/dashboard/#", hostIpAddress, ZALENIUM_PORT));
         } catch (Exception e) {
             LOGGER.warn("FAILED on {}", chromeCaps.toString());
             throw e;
