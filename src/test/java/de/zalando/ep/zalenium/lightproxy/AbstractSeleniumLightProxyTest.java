@@ -2,10 +2,14 @@ package de.zalando.ep.zalenium.lightproxy;
 
 import de.zalando.ep.zalenium.lightproxy.service.impl.BrowserMobProxy;
 import org.apache.commons.collections4.SetUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.Before;
 import org.openqa.selenium.Platform;
 import org.openqa.selenium.remote.BrowserType;
 import org.openqa.selenium.remote.CapabilityType;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.HashMap;
@@ -51,8 +55,11 @@ abstract class AbstractSeleniumLightProxyTest {
         RestTemplate mockRestTemplate = mock(RestTemplate.class);
         BMProxy bmProxy = new BMProxy();
         bmProxy.setPort(8001);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        HttpEntity<Object> requestCreateHar = new HttpEntity<>(StringUtils.EMPTY, headers);
         when(mockRestTemplate.postForEntity(s,
-                null, BMProxy.class)).thenReturn(ok().body(bmProxy));
+                requestCreateHar, BMProxy.class)).thenReturn(ok().body(bmProxy));
         return mockRestTemplate;
     }
 

@@ -37,10 +37,19 @@ public class SeleniumLightProxy {
 
     public static final String HTTP_PROXY = "httpProxy";
 
+    /**
+     * {@link LightProxy}
+     */
     private LightProxy lightProxy;
 
+    /**
+     * Desired capabilities of test.
+     */
     private Map<String, Object> requestedCapabilities;
 
+    /**
+     * @return {@link LightProxy}
+     */
     public LightProxy getLightProxy() {
         return lightProxy;
     }
@@ -99,9 +108,9 @@ public class SeleniumLightProxy {
     public void addPageRefCaptureForHar(final SeleniumBasedRequest seleniumRequest) {
         if (lightProxy != null
                 && (!requestedCapabilities.containsKey(ZaleniumCapabilityType.LIGHT_PROXY_CAPTURE_HAR) ||
-                    Boolean.parseBoolean(Optional.ofNullable(
-                            requestedCapabilities.get(ZaleniumCapabilityType.LIGHT_PROXY_CAPTURE_HAR)).
-                            orElse(Boolean.TRUE).toString()))
+                Boolean.parseBoolean(Optional.ofNullable(
+                        requestedCapabilities.get(ZaleniumCapabilityType.LIGHT_PROXY_CAPTURE_HAR)).
+                        orElse(Boolean.TRUE).toString()))
                 && seleniumRequest != null
                 && StringUtils.isNotEmpty(seleniumRequest.getPathInfo())
                 && seleniumRequest.getPathInfo().endsWith("url")
