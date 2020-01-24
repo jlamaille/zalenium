@@ -189,7 +189,7 @@ public class CBTRemoteProxyTest {
             verify(cbtSpyProxy, timeout(1000 * 5)).getTestInformation(mockSeleniumSessionId);
             TestInformation testInformation = cbtSpyProxy.getTestInformation(mockSeleniumSessionId);
             Assert.assertEquals("loadZalandoPageAndCheckTitle", testInformation.getTestName());
-            Assert.assertThat(testInformation.getFileName(),
+            Assert.assertThat(testInformation.getVideoFileName(),
                     CoreMatchers.containsString("crossbrowsertesting_loadZalandoPageAndCheckTitle_Safari_Mac_OSX_10_14"));
             Assert.assertEquals("Safari 12, Mac OSX 10.14", testInformation.getBrowserAndPlatform());
             Assert.assertEquals("https://s3.amazonaws.com/media.crossbrowsertesting.com/users/494827/videos/ze3bfcf468564beb0b87.mp4",

@@ -202,7 +202,7 @@ public class BrowserStackRemoteProxyTest {
             await().pollInterval(Duration.FIVE_HUNDRED_MILLISECONDS).atMost(Duration.TWO_SECONDS).until(callable);
             TestInformation testInformation = bsSpyProxy.getTestInformation(mockSeleniumSessionId);
             Assert.assertEquals("loadZalandoPageAndCheckTitle", testInformation.getTestName());
-            Assert.assertThat(testInformation.getFileName(),
+            Assert.assertThat(testInformation.getVideoFileName(),
                     CoreMatchers.containsString("browserstack_loadZalandoPageAndCheckTitle_safari_OS_X"));
             Assert.assertEquals("safari 6.2, OS X Mountain Lion", testInformation.getBrowserAndPlatform());
             Assert.assertEquals("https://www.browserstack.com/s3-upload/bs-video-logs-use/s3/77e51cead8e6e37b0" +

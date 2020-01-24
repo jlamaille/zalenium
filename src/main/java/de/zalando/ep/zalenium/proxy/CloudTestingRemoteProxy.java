@@ -273,7 +273,7 @@ public class CloudTestingRemoteProxy extends DefaultRemoteProxy {
                 TestInformation.TestStatus status = testCompleted ?
                         TestInformation.TestStatus.COMPLETED : TestInformation.TestStatus.TIMEOUT;
                 testInformation.setTestStatus(status);
-                String fileNameWithFullPath = testInformation.getVideoFolderPath() + "/" + testInformation.getFileName();
+                String fileNameWithFullPath = testInformation.getVideoFolderPath() + "/" + testInformation.getVideoFileName();
                 commonProxyUtilities.downloadFile(testInformation.getVideoUrl(), fileNameWithFullPath,
                         getUserNameValue(), getAccessKeyValue(), useAuthenticationToDownloadFile());
                 for (String logUrl : testInformation.getLogUrls()) {

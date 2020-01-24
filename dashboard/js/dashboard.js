@@ -13,9 +13,10 @@ function addTestItem(item) {
     }
     let buildDirectory = item.videoFolderPath.replace("/home/seluser/videos", "");
     buildDirectory = buildDirectory.trim().length > 0 ? buildDirectory.replace("/", "").concat("/") : "";
-    const fileName = buildDirectory.concat(item.fileName);
+    const fileName = buildDirectory.concat(item.videoFileName);
     const seleniumLogFileName = buildDirectory.concat(item.seleniumLogFileName);
     const browserDriverLogFileName = buildDirectory.concat(item.browserDriverLogFileName);
+    const harFileName = item.harFolderPath.replace("/home/seluser/videos/", "").concat("/").concat(item.harFileName);
     const testItem =
         "<a href=\"#\" class=\"list-group-item list-group-item-action flex-column align-items-start p-2\"" +
         " data-video=\"" + fileName + "\"" +
@@ -33,6 +34,8 @@ function addTestItem(item) {
         " data-test-build=\"" + item.build + "\"" +
         " data-selenium-log=\"" + seleniumLogFileName + "\"" +
         " data-browser-driver=\"" + browserDriverLogFileName + "\"" +
+        " data-is-har-captured=\"" + item.isHarCaptured + "\"" +
+        " data-har-file=\"" + harFileName + "\"" +
         " data-retention-date=\"" + item.retentionDate + "\">" +
         "<div class=\"d-flex w-100 justify-content-between\">" +
         "<small class=\"font-weight-bold text-truncate\">" + item.testName + "</small>" +
@@ -88,7 +91,7 @@ function playVideo($video) {
 }
 
 function setTestInformation($testName, $browser, $browserVersion, $platform, $proxyName, $dateTime,
-                            $screenDimension, $timeZone, $build, $testStatus, $retentionDate) {
+                            $screenDimension, $timeZone, $build, $testStatus, $retentionDate, $isHarCaptured, $harFile) {
     const testName = $("#test-name");
     testName.html("");
     testName.append("<img alt=\"" + $testStatus + "\" src=\"img/" + $testStatus.toLowerCase() + ".png\" class=\"mr-1\" " +
@@ -118,6 +121,21 @@ function setTestInformation($testName, $browser, $browserVersion, $platform, $pr
             "width=\"48px\" height=\"48px\">");
         screenResolutionTimeZone.append("<small class=\"mr-1\">" + $timeZone + "</small>");
     }
+
+    const buildElement = $("#harFile");
+    buildElement.html("");
+    if($isHarCaptured && $("#harFile") !== "") {
+        buildElement.removeClass("p-0");
+        buildElement.addClass("p-1");
+        buildElement.parent().removeClass("invisible");
+        buildElement.append("<img alt=\"Har\" src=\"img/har.png\" class=\"mr-1\" width=\"48px\" height=\"48px\">");
+        buildElement.append("<a class=\"mr-1\" target=\"_blank\" href=\"" + window.location.href.slice("#", -1) + $harFile + "\">HTTP Archive</a>");
+    } else {
+        buildElement.removeClass("p-1");
+        buildElement.addClass("p-0");
+        buildElement.parent().addClass("invisible");
+     }
+
     screenResolutionTimeZone.append("<span class=\"float-right\"><img alt=\"Retention Date\" src=\"img/retention-date.png\" " +
         "class=\"mr-1\" width=\"48px\" height=\"48px\"><small>" + $retentionDate + "</small></span>");
     if ($build.toString().length > 0) {
@@ -224,6 +242,8 @@ $(document).ready(function() {
         const $retentionDate = $this.data("retention-date");
         const $seleniumLogFile = $this.data("selenium-log");
         const $browserDriverLogFile = $this.data("browser-driver");
+        const $isHarCaptured = $this.data("is-har-captured");
+        const $harFile = $this.data("har-file");
         const $screenDimension = $this.data("screen-dimension");
         const $timeZone = $this.data("time-zone");
         const $build = $this.data("test-build");
@@ -234,7 +254,7 @@ $(document).ready(function() {
 
         // Set test info to be displayed
         setTestInformation($testName, $browser, $browserVersion, $platform, $proxyName, $dateTime,
-            $screenDimension, $timeZone, $build, $testStatus, $retentionDate);
+            $screenDimension, $timeZone, $build, $testStatus, $retentionDate, $isHarCaptured, $harFile);
 
         // Pass clicked link element to another function
         playVideo($video);
