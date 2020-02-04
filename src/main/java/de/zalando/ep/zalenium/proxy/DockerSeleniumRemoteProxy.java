@@ -718,9 +718,9 @@ public class DockerSeleniumRemoteProxy extends DefaultRemoteProxy {
             InputStreamDescriptor entry;
             while ((entry = tarStream.next()) != null) {
                 String fileExtension = entry.name().substring(entry.name().lastIndexOf('.'));
-                testInformation.setFileExtension(fileExtension);
+                testInformation.setVideoFileExtension(fileExtension);
                 Path videoFile = Paths.get(String.format("%s/%s", testInformation.getVideoFolderPath(),
-                        testInformation.getFileName()));
+                        testInformation.getVideoFileName()));
                 if (!Files.exists(videoFile.getParent())) {
                     Files.createDirectories(videoFile.getParent());
                 }
